@@ -6,10 +6,9 @@ class AuthService extends ChangeNotifier {
   final FirebaseAuth _auth = FirebaseAuth.instance;
   final GoogleSignIn _googleSignIn = GoogleSignIn();
 
-  User? get currentUser => _auth.currentUser;
   Stream<User?> get authStateChanges => _auth.authStateChanges();
 
-
+  User? get currentUser => _auth.currentUser;
 
   Future<User?> signInWithGoogle() async {
     try {
@@ -25,28 +24,53 @@ class AuthService extends ChangeNotifier {
         idToken: googleAuth.idToken,
       );
 
-      await _auth.signInWithCredential(credential);
+      UserCredential userCredential = await _auth.signInWithCredential(credential);
       notifyListeners();
-      return _auth.currentUser;
+      return userCredential.user;
     } catch (e) {
-      print("Google Sign-In Error: $e");
+      print("Google Sign-In Error: \$e");
       return null;
     }
   }
 
+  Future<User?> signIn(String email, String password) async {
+    try {
+      UserCredential userCredential = await _auth.signInWithEmailAndPassword(
+          email: email, password: password);
+      notifyListeners();
+      return userCredential.user;
+    } catch (e) {
+      print("Sign-In Error: \$e");
+      return null;
+    }
+  }
+
+  Future<User?> signUp(String email, String password) async {
+    try {
+      UserCredential userCredential = await _auth.createUserWithEmailAndPassword(
+          email: email, password: password);
+      await userCredential.user?.sendEmailVerification();
+      notifyListeners();
+      return userCredential.user;
+    } catch (e) {
+      print("Sign-Up Error: \$e");
+      return null;
+    }
+  }
+
+  Future<bool> isEmailVerified() async {
+    User? user = _auth.currentUser;
+    await user?.reload();
+    return user?.emailVerified ?? false;
+  }
+
   Future<void> signOut() async {
-    await _auth.signOut();
-    await _googleSignIn.signOut();
-    notifyListeners();
-  }
-
-  Future<void> signUp(String email, String password) async {
-    await _auth.createUserWithEmailAndPassword(email: email, password: password);
-  }
-
-  Future<void> signIn(String email, String password) async {
-    await _auth.signInWithEmailAndPassword(email: email, password: password);
+    try {
+      await _auth.signOut();
+      await _googleSignIn.signOut();
+      notifyListeners();
+    } catch (e) {
+      print("Sign-Out Error: \$e");
+    }
   }
 }
-
-

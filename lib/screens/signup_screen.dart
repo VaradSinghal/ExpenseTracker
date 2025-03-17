@@ -1,6 +1,7 @@
 import 'package:expense_tracker/core/services/auth_service.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'verify_email_screen.dart';
 
 class SignupScreen extends StatefulWidget {
   @override
@@ -27,6 +28,7 @@ class _SignupScreenState extends State<SignupScreen> {
                 await Provider.of<AuthService>(context, listen: false).signUp(
                   _emailController.text, _passwordController.text,
                 );
+                Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => VerifyEmailScreen()));
               },
               child: Text('Sign Up'),
             ),
