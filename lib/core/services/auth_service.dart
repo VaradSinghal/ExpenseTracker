@@ -14,7 +14,7 @@ class AuthService extends ChangeNotifier {
     try {
       final GoogleSignInAccount? googleUser = await _googleSignIn.signIn();
       if (googleUser == null) {
-        print("Google Sign-In canceled");
+    
         return null;
       }
 
@@ -28,7 +28,7 @@ class AuthService extends ChangeNotifier {
       notifyListeners();
       return userCredential.user;
     } catch (e) {
-      print("Google Sign-In Error: \$e");
+   
       return null;
     }
   }
@@ -40,7 +40,7 @@ class AuthService extends ChangeNotifier {
       notifyListeners();
       return userCredential.user;
     } catch (e) {
-      print("Sign-In Error: \$e");
+  
       return null;
     }
   }
@@ -53,7 +53,7 @@ class AuthService extends ChangeNotifier {
       notifyListeners();
       return userCredential.user;
     } catch (e) {
-      print("Sign-Up Error: \$e");
+ 
       return null;
     }
   }
@@ -70,7 +70,7 @@ class AuthService extends ChangeNotifier {
       await _googleSignIn.signOut();
       notifyListeners();
     } catch (e) {
-      print("Sign-Out Error: \$e");
+    
     }
   }
 }
