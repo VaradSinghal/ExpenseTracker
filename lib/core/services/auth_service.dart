@@ -7,17 +7,20 @@ class AuthService extends ChangeNotifier {
   final GoogleSignIn _googleSignIn = GoogleSignIn();
 
   User? get currentUser => _auth.currentUser;
+  Stream<User?> get authStateChanges => _auth.authStateChanges();
 
-  Stream<User?> get userStream => _auth.authStateChanges();
 
 
   Future<User?> signInWithGoogle() async {
     try {
       final GoogleSignInAccount? googleUser = await _googleSignIn.signIn();
-      if (googleUser == null) return null;
+      if (googleUser == null) {
+        print("Google Sign-In canceled");
+        return null;
+      }
 
       final GoogleSignInAuthentication googleAuth = await googleUser.authentication;
-      final credential = GoogleAuthProvider.credential(
+      final OAuthCredential credential = GoogleAuthProvider.credential(
         accessToken: googleAuth.accessToken,
         idToken: googleAuth.idToken,
       );
@@ -31,10 +34,19 @@ class AuthService extends ChangeNotifier {
     }
   }
 
-
   Future<void> signOut() async {
     await _auth.signOut();
     await _googleSignIn.signOut();
     notifyListeners();
   }
+
+  Future<void> signUp(String email, String password) async {
+    await _auth.createUserWithEmailAndPassword(email: email, password: password);
+  }
+
+  Future<void> signIn(String email, String password) async {
+    await _auth.signInWithEmailAndPassword(email: email, password: password);
+  }
 }
+
+

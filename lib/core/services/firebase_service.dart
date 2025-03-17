@@ -1,15 +1,33 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:expense_tracker/core/models/expense_model.dart';
 
 class FirebaseService {
-  final CollectionReference _expenses = FirebaseFirestore.instance.collection('expenses');
+  final CollectionReference expensesCollection =
+      FirebaseFirestore.instance.collection('expenses');
 
-  Future<void> addExpense(Expense expense) async {
-    await _expenses.doc(expense.id).set(expense.toJson());
+  /// 🔹 Add Expense
+  Future<void> addExpense(String title, double amount) async {
+    await expensesCollection.add({
+      'title': title,
+      'amount': amount,
+      'timestamp': FieldValue.serverTimestamp(),
+    });
   }
 
-  Stream<List<Expense>> getExpenses() {
-    return _expenses.snapshots().map((snapshot) =>
-        snapshot.docs.map((doc) => Expense.fromJson(doc.data() as Map<String, dynamic>)).toList());
+  /// 🔹 Update Expense
+  Future<void> updateExpense(String docId, String title, double amount) async {
+    await expensesCollection.doc(docId).update({
+      'title': title,
+      'amount': amount,
+    });
+  }
+
+  /// 🔹 Delete Expense
+  Future<void> deleteExpense(String docId) async {
+    await expensesCollection.doc(docId).delete();
+  }
+
+  /// 🔹 Get Expenses Stream
+  Stream<QuerySnapshot> getExpenses() {
+    return expensesCollection.orderBy('timestamp', descending: true).snapshots();
   }
 }
