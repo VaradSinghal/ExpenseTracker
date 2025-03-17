@@ -1,11 +1,11 @@
 import 'package:expense_tracker/core/services/auth_service.dart';
+import 'package:expense_tracker/core/services/firebase_service.dart';
 import 'package:expense_tracker/screens/home_screen.dart';
 import 'package:expense_tracker/screens/login_screen.dart';
 import 'package:expense_tracker/screens/verify_email_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:provider/provider.dart';
-
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -16,10 +16,18 @@ void main() async {
 class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
-    return ChangeNotifierProvider(
-      create: (context) => AuthService(),
+    return MultiProvider(
+      providers: [
+        ChangeNotifierProvider<AuthService>(
+          create: (context) => AuthService(),
+        ),
+        Provider<FirebaseService>(
+          create: (context) => FirebaseService(),
+        ),
+      ],
       child: MaterialApp(
         debugShowCheckedModeBanner: false,
+        theme: ThemeData.dark(), // Dark theme
         home: AuthWrapper(),
       ),
     );
@@ -29,7 +37,7 @@ class MyApp extends StatelessWidget {
 class AuthWrapper extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
-    final authService = Provider.of<AuthService>(context);
+    final authService = Provider.of<AuthService>(context, listen: false);
     return StreamBuilder(
       stream: authService.authStateChanges,
       builder: (context, snapshot) {
