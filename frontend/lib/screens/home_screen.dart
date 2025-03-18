@@ -162,7 +162,7 @@ class _HomeScreenState extends State<HomeScreen> {
         ],
       ),
 
-      /// **Add Expense Button**
+    
       floatingActionButton: FloatingActionButton(
         backgroundColor: Colors.redAccent,
         child: Icon(Icons.add),
