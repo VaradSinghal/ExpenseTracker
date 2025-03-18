@@ -5,61 +5,97 @@ class FirebaseService {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   final FirebaseAuth _auth = FirebaseAuth.instance;
 
-  String get userId => _auth.currentUser?.uid ?? "";
+  // Get current user ID
+  String get userId => _auth.currentUser?.uid ?? '';
 
-  DocumentReference get _bankBalanceDoc => _firestore.collection('users').doc(userId);
-  CollectionReference get _expensesCollection => _firestore.collection('expenses');
+  // Initialize a new user with email and default bank balance
+  Future<void> initializeUser(String email) async {
+    if (userId.isEmpty) return;
 
-  Stream<DocumentSnapshot> get bankBalanceStream {
-    return _bankBalanceDoc.snapshots();
+    DocumentReference userRef = _firestore.collection('users').doc(userId);
+    DocumentSnapshot userSnapshot = await userRef.get();
+
+    if (!userSnapshot.exists) {
+      await userRef.set({
+        'email': email,
+        'bankBalance': 1000, // Default balance
+      });
+    }
   }
 
-  Future<double> getBankBalance() async {
-    DocumentSnapshot doc = await _bankBalanceDoc.get();
-    if (doc.exists && doc.data() != null) {
-      return (doc['bankBalance'] as num).toDouble();
+  /// Fetch bank balance from Firestore
+  Future<int> getBankBalance() async {
+    if (userId.isEmpty) throw Exception("User not logged in");
+
+    final doc = await _firestore.collection('users').doc(userId).get();
+    if (doc.exists) {
+      return doc.data()?['bankBalance'] ?? 0; // Fetch 'bankBalance' field
     } else {
-      await _bankBalanceDoc.set({'bankBalance': 0.0});
-      return 0.0;
+      throw Exception("User document not found");
     }
   }
 
-  Future<void> updateBankBalance(double newBalance) async {
-    await _bankBalanceDoc.set({'bankBalance': newBalance}, SetOptions(merge: true));
+  // Update bank balance
+  Future<void> updateBankBalance(int newBalance) async {
+    if (userId.isEmpty) return;
+
+    await _firestore.collection('users').doc(userId).update({
+      'bankBalance': newBalance,
+    });
   }
 
-  Future<void> addExpense(String title, double amount) async {
-    double currentBalance = await getBankBalance();
-    double newBalance = currentBalance - amount;
+  // Add an expense
+  Future<void> addExpense(String title, int amount) async {
+    if (userId.isEmpty) return;
 
-    if (newBalance < 0) {
-      throw Exception("Insufficient Balance!");
-    }
+    CollectionReference expensesRef =
+        _firestore.collection('users').doc(userId).collection('expenses');
 
-    await _expensesCollection.add({
+    await expensesRef.add({
       'title': title,
       'amount': amount,
-      'userId': userId,
-      'date': Timestamp.now(),
+      'timestamp': FieldValue.serverTimestamp(), // Optional, for sorting
     });
 
-    await updateBankBalance(newBalance);
+    // Deduct from bank balance
+    int currentBalance = await getBankBalance();
+    await updateBankBalance(currentBalance - amount);
   }
 
-  Stream<QuerySnapshot> get recentExpensesStream {
-    return _expensesCollection
-        .where('userId', isEqualTo: userId)
-        .orderBy('date', descending: true)
-        .limit(10)
-        .snapshots();
+  // Delete an expense and update bank balance
+  Future<void> deleteExpense(String expenseId, int amount) async {
+    if (userId.isEmpty) return;
+
+    await _firestore
+        .collection('users')
+        .doc(userId)
+        .collection('expenses')
+        .doc(expenseId)
+        .delete();
+
+    // Add back the amount to bank balance
+    int currentBalance = await getBankBalance();
+    await updateBankBalance(currentBalance + amount);
   }
 
-  Stream<QuerySnapshot> get last7DaysExpensesStream {
-    DateTime sevenDaysAgo = DateTime.now().subtract(Duration(days: 7));
-    return _expensesCollection
-        .where('userId', isEqualTo: userId)
-        .where('date', isGreaterThan: Timestamp.fromDate(sevenDaysAgo))
-        .orderBy('date', descending: true)
-        .snapshots();
+  // 🔥 **Real-time stream for expenses**
+  Stream<List<Map<String, dynamic>>> getRecentExpensesStream() {
+    if (userId.isEmpty) return Stream.value([]);
+
+    return _firestore
+        .collection('users')
+        .doc(userId)
+        .collection('expenses')
+        .orderBy('timestamp', descending: true) // Sort by timestamp
+        .snapshots()
+        .map((querySnapshot) {
+      return querySnapshot.docs.map((doc) {
+        return {
+          'id': doc.id,
+          'title': doc['title'],
+          'amount': doc['amount'],
+        };
+      }).toList();
+    });
   }
 }
