@@ -21,7 +21,7 @@ app.get('/', (req, res) => {
 
 app.use('/api/auth', require('./routes/authRoutes')); 
 app.use('/api/user',require('./routes/userRoutes'))
-
+app.use('/api/expenses', require('./routes/expenseRoutes'));
 app.listen(PORT, () => {
     console.log(`✅ Server started on port: ${PORT}`);
 });

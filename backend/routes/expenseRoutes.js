@@ -1,9 +1,20 @@
-import express from "express";
-import { addExpense } from "../controllers/expenseController.js";
-import authMiddleware from "../middleware/authMiddleware.js";
-
+const express = require('express');
 const router = express.Router();
+const { authenticateUser } = require('../middleware/authMiddleware'); 
+const {
+    addExpense,
+    deleteExpense,
+    getRecentExpenses,
+    getLast7DaysExpenses,
+} = require('../controllers/expenseController');
 
-router.post("/add", authMiddleware, addExpense);
 
-export default router;
+router.use(authenticateUser);
+
+
+router.post('/', addExpense);
+router.delete('/:id', deleteExpense); 
+router.get('/recent', getRecentExpenses); 
+router.get('/last7days', getLast7DaysExpenses); 
+
+module.exports = router;

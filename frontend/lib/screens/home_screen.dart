@@ -3,7 +3,9 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 
-import 'login_screen.dart'; // Import your login screen
+import 'login_screen.dart'; // Import login screen
+import 'add_expense_screen.dart'; // Import add expense screen
+import 'analytics_screen.dart'; // Import analytics screen
 
 class HomeScreen extends StatefulWidget {
   @override
@@ -14,11 +16,13 @@ class _HomeScreenState extends State<HomeScreen> {
   int _bankBalance = 0;
   bool _isLoading = true;
   bool _hasSetBankBalance = false;
+  List<dynamic> _expenses = []; // List to store fetched expenses
 
   @override
   void initState() {
     super.initState();
     _fetchUserInfo();
+    _fetchRecentExpenses(); // Fetch expenses for the current day
   }
 
   Future<void> _fetchUserInfo() async {
@@ -57,6 +61,74 @@ class _HomeScreenState extends State<HomeScreen> {
       setState(() => _isLoading = false);
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text("Error fetching user info: $e")),
+      );
+    }
+  }
+
+  Future<void> _fetchRecentExpenses() async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    String? token = prefs.getString('token');
+
+    if (token == null) {
+      return;
+    }
+
+    try {
+      final response = await http.get(
+        Uri.parse("http://192.168.1.47:8000/api/expenses/recent"),
+        headers: {"Authorization": "Bearer $token"},
+      );
+
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        setState(() {
+          _expenses = data; // Update the expenses list
+        });
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text("Failed to fetch expenses: ${response.statusCode}")),
+        );
+      }
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text("Error fetching expenses: $e")),
+      );
+    }
+  }
+
+  Future<void> _deleteExpense(String expenseId) async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    String? token = prefs.getString('token');
+
+    if (token == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text("No token found, please log in again")),
+      );
+      return;
+    }
+
+    try {
+      final response = await http.delete(
+        Uri.parse("http://192.168.1.47:8000/api/expenses/$expenseId"),
+        headers: {"Authorization": "Bearer $token"},
+      );
+
+      if (response.statusCode == 200) {
+        setState(() {
+          _expenses.removeWhere((expense) => expense["_id"] == expenseId);
+        });
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text("Expense deleted successfully!")),
+        );
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text("Failed to delete expense: ${response.statusCode}")),
+        );
+      }
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text("Error deleting expense: $e")),
       );
     }
   }
@@ -169,51 +241,58 @@ class _HomeScreenState extends State<HomeScreen> {
         title: Text("Home"),
         backgroundColor: Colors.greenAccent,
         actions: [
-          if (_hasSetBankBalance)
-            IconButton(
-              icon: Icon(Icons.account_balance_wallet),
-              onPressed: _setBankBalance,
-            ),
+          IconButton(
+            icon: Icon(Icons.analytics),
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => AnalyticsScreen()),
+              );
+            },
+          ),
           IconButton(
             icon: Icon(Icons.logout),
             onPressed: _logout,
           ),
         ],
       ),
-      body: Center(
-        child: _isLoading
-            ? CircularProgressIndicator()
-            : Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Text(
-                    "Bank Balance: ₹$_bankBalance",
-                    style: TextStyle(fontSize: 24, color: Colors.white),
+      body: _isLoading
+          ? Center(child: CircularProgressIndicator())
+          : Column(
+              children: [
+                Padding(
+                  padding: const EdgeInsets.all(16.0),
+                  child: Text("Bank Balance: ₹$_bankBalance",
+                      style: TextStyle(fontSize: 24, color: Colors.white)),
+                ),
+                Expanded(
+                  child: ListView.builder(
+                    itemCount: _expenses.length,
+                    itemBuilder: (context, index) {
+                      final expense = _expenses[index];
+                      return ListTile(
+                        title: Text(expense["title"], style: TextStyle(color: Colors.white)),
+                        subtitle: Text("₹${expense["amount"]}", style: TextStyle(color: Colors.white54)),
+                        trailing: IconButton(
+                          icon: Icon(Icons.delete, color: Colors.red),
+                          onPressed: () => _deleteExpense(expense["_id"]),
+                        ),
+                      );
+                    },
                   ),
-                  SizedBox(height: 20),
-                  ElevatedButton(
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.greenAccent,
-                    ),
-                    onPressed: _setBankBalance,
-                    child: Text(
-                      _hasSetBankBalance ? "Update Bank Balance" : "Set Bank Balance",
-                      style: TextStyle(color: Colors.black),
-                    ),
-                  ),
-                  SizedBox(height: 20),
-                  ElevatedButton(
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.redAccent,
-                    ),
-                    onPressed: _logout,
-                    child: Text(
-                      "Logout",
-                      style: TextStyle(color: Colors.white),
-                    ),
-                  ),
-                ],
-              ),
+                ),
+              ],
+            ),
+      // Add a FloatingActionButton to navigate to the AddExpenseScreen
+      floatingActionButton: FloatingActionButton(
+        onPressed: () {
+          Navigator.push(
+            context,
+            MaterialPageRoute(builder: (context) => AddExpenseScreen()),
+          );
+        },
+        child: Icon(Icons.add),
+        backgroundColor: Colors.greenAccent,
       ),
     );
   }
