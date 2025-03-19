@@ -3,6 +3,8 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 
+import 'login_screen.dart'; // Import your login screen
+
 class HomeScreen extends StatefulWidget {
   @override
   _HomeScreenState createState() => _HomeScreenState();
@@ -11,14 +13,15 @@ class HomeScreen extends StatefulWidget {
 class _HomeScreenState extends State<HomeScreen> {
   int _bankBalance = 0;
   bool _isLoading = true;
+  bool _hasSetBankBalance = false;
 
   @override
   void initState() {
     super.initState();
-    _fetchBankBalance();
+    _fetchUserInfo();
   }
 
-  Future<void> _fetchBankBalance() async {
+  Future<void> _fetchUserInfo() async {
     SharedPreferences prefs = await SharedPreferences.getInstance();
     String? token = prefs.getString('token');
 
@@ -27,35 +30,46 @@ class _HomeScreenState extends State<HomeScreen> {
       return;
     }
 
-    final response = await http.get(
-      Uri.parse("http://10.9.76.13:8000/api/user/get-bank-balance"),
-      headers: {"Authorization": "Bearer $token"},
-    );
+    try {
+      final response = await http.get(
+        Uri.parse("http://192.168.1.47:8000/api/user/user-info"),
+        headers: {"Authorization": "Bearer $token"},
+      );
 
-    if (response.statusCode == 200) {
-      final data = jsonDecode(response.body);
-      setState(() {
-        _bankBalance = data["bankBalance"] ?? 0;
-        _isLoading = false;
-      });
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        setState(() {
+          _bankBalance = data["bankBalance"] ?? 0;
+          _hasSetBankBalance = data["hasSetBankBalance"] ?? false;
+          _isLoading = false;
+        });
 
-      // If balance is 0, prompt user to set it
-      if (_bankBalance == 0) {
-        Future.delayed(Duration(milliseconds: 500), () => _setBankBalance());
+        if (!_hasSetBankBalance) {
+          Future.delayed(Duration(milliseconds: 500), () => _setBankBalance());
+        }
+      } else {
+        setState(() => _isLoading = false);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text("Failed to fetch user info: ${response.statusCode}")),
+        );
       }
-    } else {
+    } catch (e) {
       setState(() => _isLoading = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text("Error fetching user info: $e")),
+      );
     }
   }
 
-  void _setBankBalance() async {
+  Future<void> _setBankBalance() async {
     final TextEditingController _balanceController = TextEditingController();
 
     showDialog(
       context: context,
+      barrierDismissible: false,
       builder: (context) {
         return AlertDialog(
-          title: Text("Set Initial Bank Balance"),
+          title: Text("Set Bank Balance"),
           content: TextField(
             controller: _balanceController,
             keyboardType: TextInputType.number,
@@ -63,7 +77,15 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
           actions: [
             TextButton(
-              onPressed: () => Navigator.pop(context),
+              onPressed: () {
+                if (!_hasSetBankBalance) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text("You must set your bank balance!")),
+                  );
+                } else {
+                  Navigator.pop(context);
+                }
+              },
               child: Text("Cancel"),
             ),
             TextButton(
@@ -71,7 +93,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 int? balance = int.tryParse(_balanceController.text);
                 if (balance == null || balance < 0) {
                   ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(content: Text("Enter a valid balance")),
+                    SnackBar(content: Text("Enter a valid non-negative number")),
                   );
                   return;
                 }
@@ -79,26 +101,46 @@ class _HomeScreenState extends State<HomeScreen> {
                 SharedPreferences prefs = await SharedPreferences.getInstance();
                 String? token = prefs.getString('token');
 
-                final response = await http.put(
-                  Uri.parse("http://localhost:8000/api/user/set-bank-balance"),
-                  headers: {
-                    "Content-Type": "application/json",
-                    "Authorization": "Bearer $token"
-                  },
-                  body: jsonEncode({"bankBalance": balance}),
-                );
-
-                if (response.statusCode == 200) {
-                  setState(() {
-                    _bankBalance = balance;
-                  });
-                  Navigator.pop(context);
+                if (token == null) {
                   ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(content: Text("Bank balance set successfully!")),
+                    SnackBar(content: Text("No token found, please log in again")),
                   );
-                } else {
+                  Navigator.pop(context);
+                  return;
+                }
+
+                try {
+                  final response = await http.put(
+                    Uri.parse("http://192.168.1.47:8000/api/user/set-bank-balance"),
+                    headers: {
+                      "Content-Type": "application/json",
+                      "Authorization": "Bearer $token",
+                    },
+                    body: jsonEncode({"bankBalance": balance}),
+                  );
+
+                  if (response.statusCode == 200) {
+                    final data = jsonDecode(response.body);
+                    setState(() {
+                      _bankBalance = data["bankBalance"] ?? balance;
+                      _hasSetBankBalance = true;
+                    });
+                    Navigator.pop(context);
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(content: Text("Bank balance set successfully!")),
+                    );
+                  } else {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text(
+                          "Failed to set bank balance: ${response.statusCode} - ${response.body}",
+                        ),
+                      ),
+                    );
+                  }
+                } catch (e) {
                   ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(content: Text("Failed to set bank balance")),
+                    SnackBar(content: Text("Error setting bank balance: $e")),
                   );
                 }
               },
@@ -110,6 +152,15 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
+  Future<void> _logout() async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    await prefs.remove('token'); // Clear token
+    Navigator.pushReplacement(
+      context,
+      MaterialPageRoute(builder: (context) => LoginScreen()), // Redirect to login
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -118,9 +169,14 @@ class _HomeScreenState extends State<HomeScreen> {
         title: Text("Home"),
         backgroundColor: Colors.greenAccent,
         actions: [
+          if (_hasSetBankBalance)
+            IconButton(
+              icon: Icon(Icons.account_balance_wallet),
+              onPressed: _setBankBalance,
+            ),
           IconButton(
-            icon: Icon(Icons.account_balance_wallet),
-            onPressed: _setBankBalance, // Allow user to update balance
+            icon: Icon(Icons.logout),
+            onPressed: _logout,
           ),
         ],
       ),
@@ -141,8 +197,19 @@ class _HomeScreenState extends State<HomeScreen> {
                     ),
                     onPressed: _setBankBalance,
                     child: Text(
-                      "Set/Update Bank Balance",
+                      _hasSetBankBalance ? "Update Bank Balance" : "Set Bank Balance",
                       style: TextStyle(color: Colors.black),
+                    ),
+                  ),
+                  SizedBox(height: 20),
+                  ElevatedButton(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.redAccent,
+                    ),
+                    onPressed: _logout,
+                    child: Text(
+                      "Logout",
+                      style: TextStyle(color: Colors.white),
                     ),
                   ),
                 ],
