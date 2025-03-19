@@ -1,18 +1,29 @@
-require('dotenv').config()
-const express = require('express')
-const connectDB = require('./db/connection')
+require('dotenv').config();
+const express = require('express');
+const cors = require('cors');
+const connectDB = require('./config/db');
 
-const PORT = process.eventNames.PORT || 8000;
+// ✅ Set Default Port
+const PORT = process.env.PORT || 8000;
 
-const app = express()
+const app = express();
 
-connectDB()
+// ✅ Connect to MongoDB
+connectDB();
 
-app.get('/', (req,res)=>{
-    res.send("Server is Up")
-})
+// ✅ Middleware
+app.use(cors()); // Allow frontend requests
+app.use(express.json()); // Parse JSON body
 
-app.listen(PORT, ()=>{
-    console.log("Server started at port:", PORT);
-    
-})
+// ✅ Test Route
+app.get('/', (req, res) => {
+    res.send("🚀 Server is Up & Running!");
+});
+
+// ✅ Import Routes
+app.use('/api/auth', require('./routes/authRoutes')); // Connect Auth Routes
+
+// ✅ Start Server
+app.listen(PORT, () => {
+    console.log(`✅ Server started on port: ${PORT}`);
+});

@@ -1,8 +1,9 @@
-import 'package:expense_tracker/core/services/firebase_service.dart';
-import 'package:expense_tracker/screens/verify_email_screen.dart';
-import 'package:expense_tracker/screens/login_screen.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
+import 'dart:convert';
+import 'home_screen.dart';
+import 'login_screen.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class SignupScreen extends StatefulWidget {
   @override
@@ -12,52 +13,63 @@ class SignupScreen extends StatefulWidget {
 class _SignupScreenState extends State<SignupScreen> {
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
-  final FirebaseService _firebaseService = FirebaseService(); // Firebase Service instance
+  bool _isLoading = false;
+  String? _errorMessage;
 
-  void _switchToLogin() {
-    FocusScope.of(context).unfocus();
-    Navigator.pushReplacement(
-      context,
-      PageRouteBuilder(
-        pageBuilder: (context, animation, secondaryAnimation) => LoginScreen(),
-        transitionsBuilder: (context, animation, secondaryAnimation, child) {
-          return FadeTransition(opacity: animation, child: child);
-        },
-      ),
-    );
-  }
+  Future<void> _signup() async {
+    setState(() {
+      _isLoading = true;
+      _errorMessage = null;
+    });
 
-  Future<void> _signUp() async {
-    String email = _emailController.text.trim();
-    String password = _passwordController.text.trim();
+    final String email = _emailController.text.trim();
+    final String password = _passwordController.text.trim();
+
+    if (email.isEmpty || password.isEmpty) {
+      setState(() {
+        _errorMessage = "Please enter valid details";
+        _isLoading = false;
+      });
+      return;
+    }
+
+    final Uri url = Uri.parse("http://localhost:8000/api/auth/signup");
 
     try {
-      // Firebase Authentication - Create User
-      UserCredential userCredential = await FirebaseAuth.instance
-          .createUserWithEmailAndPassword(email: email, password: password);
-      User? user = userCredential.user;
+      final response = await http.post(
+        url,
+        headers: {"Content-Type": "application/json"},
+        body: jsonEncode({
+          "email": email,
+          "password": password,
+        }),
+      );
 
-      if (user != null) {
-        // Send email verification
-        await user.sendEmailVerification();
+      final responseData = jsonDecode(response.body);
 
-        // Initialize user data in Firestore (Set email & Default balance: 1000)
-        await _firebaseService.initializeUser(email);
+      if (response.statusCode == 201) {
+        String token = responseData['token'];
 
-        // Navigate to Verify Email screen
+        SharedPreferences prefs = await SharedPreferences.getInstance();
+        await prefs.setString('token', token);
+
         Navigator.pushReplacement(
           context,
-          MaterialPageRoute(builder: (_) => VerifyEmailScreen()),
+          MaterialPageRoute(builder: (_) => HomeScreen()),
         );
+      } else {
+        setState(() {
+          _errorMessage = responseData["error"] ?? "Signup failed";
+        });
       }
-    } on FirebaseAuthException catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("Signup failed: ${e.message}")),
-      );
-    } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("Signup failed: ${e.toString()}")),
-      );
+    } catch (error) {
+      setState(() {
+        _errorMessage = "Could not connect to server. Check your network.";
+      });
+    } finally {
+      setState(() {
+        _isLoading = false;
+      });
     }
   }
 
@@ -71,12 +83,14 @@ class _SignupScreenState extends State<SignupScreen> {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Icon(
-                Icons.account_balance_wallet,
-                size: 80,
-                color: Colors.greenAccent,
-              ),
+              Icon(Icons.account_circle, size: 80, color: Colors.blueAccent),
               SizedBox(height: 20),
+              if (_errorMessage != null)
+                Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 10),
+                  child: Text(_errorMessage!,
+                      style: TextStyle(color: Colors.redAccent, fontSize: 14)),
+                ),
               TextField(
                 controller: _emailController,
                 decoration: InputDecoration(
@@ -84,9 +98,7 @@ class _SignupScreenState extends State<SignupScreen> {
                   labelStyle: TextStyle(color: Colors.white70),
                   filled: true,
                   fillColor: Color(0xFF2A2A3A),
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(10),
-                  ),
+                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
                 ),
                 style: TextStyle(color: Colors.white),
               ),
@@ -98,9 +110,7 @@ class _SignupScreenState extends State<SignupScreen> {
                   labelStyle: TextStyle(color: Colors.white70),
                   filled: true,
                   fillColor: Color(0xFF2A2A3A),
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(10),
-                  ),
+                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
                 ),
                 style: TextStyle(color: Colors.white),
                 obscureText: true,
@@ -108,28 +118,24 @@ class _SignupScreenState extends State<SignupScreen> {
               SizedBox(height: 20),
               ElevatedButton(
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.greenAccent,
+                  backgroundColor: Colors.blueAccent,
                   minimumSize: Size(double.infinity, 50),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                 ),
-                onPressed: _signUp,
-                child: Text(
-                  'Sign Up',
-                  style: TextStyle(
-                    color: Colors.black,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
+                onPressed: _isLoading ? null : _signup,
+                child: _isLoading
+                    ? CircularProgressIndicator(color: Colors.black)
+                    : Text('Sign Up', style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold)),
               ),
               SizedBox(height: 15),
               TextButton(
-                onPressed: _switchToLogin,
-                child: Text(
-                  "Already have an account? Login",
-                  style: TextStyle(color: Colors.greenAccent),
-                ),
+                onPressed: () {
+                  Navigator.pushReplacement(
+                    context,
+                    MaterialPageRoute(builder: (_) => LoginScreen()),
+                  );
+                },
+                child: Text("Already have an account? Login", style: TextStyle(color: Colors.blueAccent)),
               ),
             ],
           ),

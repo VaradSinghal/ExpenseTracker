@@ -1,9 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
-import '../core/services/firebase_service.dart';
-import '../core/services/auth_service.dart';
-import 'add_expense_screen.dart';
-import 'login_screen.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:http/http.dart' as http;
+import 'dart:convert';
 
 class HomeScreen extends StatefulWidget {
   @override
@@ -11,28 +9,104 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
-  late FirebaseService firebaseService;
-  late AuthService authService;
+  int _bankBalance = 0;
+  bool _isLoading = true;
 
   @override
   void initState() {
     super.initState();
-    firebaseService = Provider.of<FirebaseService>(context, listen: false);
-    authService = Provider.of<AuthService>(context, listen: false);
+    _fetchBankBalance();
   }
 
-  void _logout() async {
-    await authService.signOut();
-    Navigator.pushReplacement(
-      context,
-      MaterialPageRoute(builder: (_) => LoginScreen()),
+  Future<void> _fetchBankBalance() async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    String? token = prefs.getString('token');
+
+    if (token == null) {
+      setState(() => _isLoading = false);
+      return;
+    }
+
+    final response = await http.get(
+      Uri.parse("http://localhost:8000/api/user/get-bank-balance"),
+      headers: {"Authorization": "Bearer $token"},
     );
+
+    if (response.statusCode == 200) {
+      final data = jsonDecode(response.body);
+      setState(() {
+        _bankBalance = data["bankBalance"] ?? 0;
+        _isLoading = false;
+      });
+
+      // If balance is 0, prompt user to set it
+      if (_bankBalance == 0) {
+        Future.delayed(Duration(milliseconds: 500), () => _setBankBalance());
+      }
+    } else {
+      setState(() => _isLoading = false);
+    }
   }
 
-  void _navigateToAddExpense() {
-    Navigator.push(
-      context,
-      MaterialPageRoute(builder: (_) => AddExpenseScreen()),
+  void _setBankBalance() async {
+    final TextEditingController _balanceController = TextEditingController();
+
+    showDialog(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: Text("Set Initial Bank Balance"),
+          content: TextField(
+            controller: _balanceController,
+            keyboardType: TextInputType.number,
+            decoration: InputDecoration(hintText: "Enter your bank balance"),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: Text("Cancel"),
+            ),
+            TextButton(
+              onPressed: () async {
+                int? balance = int.tryParse(_balanceController.text);
+                if (balance == null || balance < 0) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text("Enter a valid balance")),
+                  );
+                  return;
+                }
+
+                SharedPreferences prefs = await SharedPreferences.getInstance();
+                String? token = prefs.getString('token');
+
+                final response = await http.put(
+                  Uri.parse("http://localhost:8000/api/user/set-bank-balance"),
+                  headers: {
+                    "Content-Type": "application/json",
+                    "Authorization": "Bearer $token"
+                  },
+                  body: jsonEncode({"bankBalance": balance}),
+                );
+
+                if (response.statusCode == 200) {
+                  setState(() {
+                    _bankBalance = balance;
+                  });
+                  Navigator.pop(context);
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text("Bank balance set successfully!")),
+                  );
+                } else {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text("Failed to set bank balance")),
+                  );
+                }
+              },
+              child: Text("Set"),
+            ),
+          ],
+        );
+      },
     );
   }
 
@@ -41,132 +115,38 @@ class _HomeScreenState extends State<HomeScreen> {
     return Scaffold(
       backgroundColor: Color(0xFF1E1E2C),
       appBar: AppBar(
-        title: Text("Expense Tracker"),
-        backgroundColor: Color(0xFF1E1E2C),
+        title: Text("Home"),
+        backgroundColor: Colors.greenAccent,
         actions: [
           IconButton(
-            icon: Icon(Icons.logout, color: Colors.white),
-            onPressed: _logout,
+            icon: Icon(Icons.account_balance_wallet),
+            onPressed: _setBankBalance, // Allow user to update balance
           ),
         ],
       ),
-      body: Column(
-        children: [
-          SizedBox(height: 20),
-
-          /// **Bank Balance Display**
-          FutureBuilder<int>(
-            future: firebaseService.getBankBalance(),
-            builder: (context, snapshot) {
-              if (snapshot.connectionState == ConnectionState.waiting) {
-                return CircularProgressIndicator();
-              }
-              if (snapshot.hasError) {
-                return Text(
-                  "Error loading balance",
-                  style: TextStyle(color: Colors.red),
-                );
-              }
-
-              int bankBalance = snapshot.data ?? 0;
-              return Card(
-                color: Color(0xFF2A2A3A),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(15),
-                ),
-                margin: EdgeInsets.symmetric(horizontal: 20),
-                child: Padding(
-                  padding: EdgeInsets.symmetric(vertical: 20, horizontal: 20),
-                  child: Column(
-                    children: [
-                      Text(
-                        "Bank Balance",
-                        style: TextStyle(
-                          color: Colors.white70,
-                          fontSize: 18,
-                        ),
-                      ),
-                      SizedBox(height: 5),
-                      Text(
-                        "₹$bankBalance",
-                        style: TextStyle(
-                          fontSize: 24,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.greenAccent,
-                        ),
-                      ),
-                    ],
+      body: Center(
+        child: _isLoading
+            ? CircularProgressIndicator()
+            : Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    "Bank Balance: ₹$_bankBalance",
+                    style: TextStyle(fontSize: 24, color: Colors.white),
                   ),
-                ),
-              );
-            },
-          ),
-
-          SizedBox(height: 20),
-
-          /// **Recent Expenses List (Real-Time Updates)**
-          Expanded(
-            child: StreamBuilder<List<Map<String, dynamic>>>(
-              stream: firebaseService.getRecentExpensesStream(),
-              builder: (context, snapshot) {
-                if (snapshot.connectionState == ConnectionState.waiting) {
-                  return Center(child: CircularProgressIndicator());
-                }
-
-                if (snapshot.hasError) {
-                  return Center(
-                    child: Text(
-                      "Error loading expenses",
-                      style: TextStyle(color: Colors.red),
+                  SizedBox(height: 20),
+                  ElevatedButton(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.greenAccent,
                     ),
-                  );
-                }
-
-                var expenses = snapshot.data ?? [];
-
-                if (expenses.isEmpty) {
-                  return Center(
+                    onPressed: _setBankBalance,
                     child: Text(
-                      "No expenses yet!",
-                      style: TextStyle(color: Colors.grey, fontSize: 16),
+                      "Set/Update Bank Balance",
+                      style: TextStyle(color: Colors.black),
                     ),
-                  );
-                }
-
-                return ListView.builder(
-                  itemCount: expenses.length,
-                  itemBuilder: (context, index) {
-                    var expense = expenses[index];
-                    return Card(
-                      color: Color(0xFF2A2A3A),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      margin: EdgeInsets.symmetric(horizontal: 15, vertical: 5),
-                      child: ListTile(
-                        title: Text(
-                          expense['title'],
-                          style: TextStyle(color: Colors.white),
-                        ),
-                        subtitle: Text(
-                          "₹${expense['amount']}",
-                          style: TextStyle(color: Colors.redAccent),
-                        ),
-                      ),
-                    );
-                  },
-                );
-              },
-            ),
-          ),
-        ],
-      ),
-
-    
-      floatingActionButton: FloatingActionButton(
-        backgroundColor: Colors.redAccent,
-        child: Icon(Icons.add),
-        onPressed: _navigateToAddExpense,
+                  ),
+                ],
+              ),
       ),
     );
   }

@@ -52,6 +52,8 @@ dependencies:
   flutter_gen: ^5.10.0
   google_sign_in: ^6.1.6 
   fl_chart: ^0.63.0
+  http: ^0.13.6
+  shared_preferences: ^2.5.2
 
 
 dev_dependencies:

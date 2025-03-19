@@ -1,7 +1,9 @@
-import 'package:expense_tracker/core/services/auth_service.dart';
-import 'package:expense_tracker/screens/signup_screen.dart';
+import 'dart:convert';
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
+import 'package:http/http.dart' as http;
+import 'package:shared_preferences/shared_preferences.dart';
+import 'home_screen.dart';
+import 'signup_screen.dart';
 
 class LoginScreen extends StatefulWidget {
   @override
@@ -11,24 +13,47 @@ class LoginScreen extends StatefulWidget {
 class _LoginScreenState extends State<LoginScreen> {
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
+  bool _isLoading = false;
+  String? _errorMessage;
 
-  void _switchToSignUp() {
-    FocusScope.of(context).unfocus(); 
-    Navigator.pushReplacement(
-      context,
-      PageRouteBuilder(
-        pageBuilder: (context, animation, secondaryAnimation) => SignupScreen(),
-        transitionsBuilder: (context, animation, secondaryAnimation, child) {
-          return FadeTransition(opacity: animation, child: child);
-        },
-      ),
+  Future<void> _login() async {
+    setState(() {
+      _isLoading = true;
+      _errorMessage = null;
+    });
+
+    final response = await http.post(
+      Uri.parse("http://your-backend-url.com/api/auth/login"),
+      headers: {"Content-Type": "application/json"},
+      body: jsonEncode({
+        "email": _emailController.text.trim(),
+        "password": _passwordController.text.trim(),
+      }),
     );
+
+    if (response.statusCode == 200) {
+      final data = jsonDecode(response.body);
+      String token = data['token'];
+
+      SharedPreferences prefs = await SharedPreferences.getInstance();
+      await prefs.setString('token', token);
+
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (_) => HomeScreen()),
+      );
+    } else {
+      final errorData = jsonDecode(response.body);
+      setState(() => _errorMessage = errorData['error'] ?? "Login failed");
+    }
+
+    setState(() => _isLoading = false);
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Color(0xFF1E1E2C), 
+      backgroundColor: Color(0xFF1E1E2C),
       body: Padding(
         padding: EdgeInsets.all(20.0),
         child: Center(
@@ -61,23 +86,30 @@ class _LoginScreenState extends State<LoginScreen> {
                 style: TextStyle(color: Colors.white),
                 obscureText: true,
               ),
+              if (_errorMessage != null) ...[
+                SizedBox(height: 10),
+                Text(_errorMessage!, style: TextStyle(color: Colors.redAccent)),
+              ],
               SizedBox(height: 20),
-              ElevatedButton(
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.greenAccent,
-                  minimumSize: Size(double.infinity, 50),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                ),
-                onPressed: () async {
-                  await Provider.of<AuthService>(context, listen: false).signIn(
-                    _emailController.text, _passwordController.text,
-                  );
-                },
-                child: Text('Login', style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold)),
-              ),
+              _isLoading
+                  ? CircularProgressIndicator()
+                  : ElevatedButton(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.greenAccent,
+                        minimumSize: Size(double.infinity, 50),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                      ),
+                      onPressed: _login,
+                      child: Text('Login', style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold)),
+                    ),
               SizedBox(height: 15),
               TextButton(
-                onPressed: _switchToSignUp,
+                onPressed: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (_) => SignupScreen()),
+                  );
+                },
                 child: Text("Don't have an account? Sign Up", style: TextStyle(color: Colors.greenAccent)),
               ),
             ],
@@ -85,5 +117,5 @@ class _LoginScreenState extends State<LoginScreen> {
         ),
       ),
     );
-  }
+  }  
 }
