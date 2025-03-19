@@ -28,7 +28,7 @@ class _HomeScreenState extends State<HomeScreen> {
     }
 
     final response = await http.get(
-      Uri.parse("http://localhost:8000/api/user/get-bank-balance"),
+      Uri.parse("http://192.168.137.1:8000/api/user/get-bank-balance"),
       headers: {"Authorization": "Bearer $token"},
     );
 
