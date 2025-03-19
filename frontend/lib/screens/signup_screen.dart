@@ -33,7 +33,7 @@ class _SignupScreenState extends State<SignupScreen> {
       return;
     }
 
-    final Uri url = Uri.parse("http://192.168.137.1:8000/api/auth/signup");
+    final Uri url = Uri.parse("http://10.9.76.13:8000/api/auth/signup");
 
     try {
       final response = await http.post(

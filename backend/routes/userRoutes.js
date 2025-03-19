@@ -1,6 +1,6 @@
 const express = require("express");
 const { setBankBalance } = require("../controllers/userController");
-const authMiddleware = require("../middleware/authMiddleware"); // Ensure user is authenticated
+const authMiddleware = require("../middleware/authMiddleware"); 
 
 const router = express.Router();
 
