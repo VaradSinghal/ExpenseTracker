@@ -16,7 +16,7 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
 
  Future<void> _addExpense() async {
   if (!_formKey.currentState!.validate()) {
-    return; // Exit if the form is invalid
+    return; 
   }
 
   setState(() => _isLoading = true);
@@ -37,7 +37,7 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
       Uri.parse("http://192.168.1.47:8000/api/expenses/"),
       headers: {
         "Content-Type": "application/json",
-        "Authorization": "Bearer $token", // Send the token
+        "Authorization": "Bearer $token", 
       },
       body: jsonEncode({
         "title": _titleController.text,
@@ -45,9 +45,7 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
       }),
     );
 
-    print("Response Status Code: ${response.statusCode}");
-    print("Response Body: ${response.body}");
-
+   
     if (response.statusCode == 201) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text("Expense added successfully!")),

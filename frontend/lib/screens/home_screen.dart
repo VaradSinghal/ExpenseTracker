@@ -3,9 +3,9 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 
-import 'login_screen.dart'; // Import login screen
-import 'add_expense_screen.dart'; // Import add expense screen
-import 'analytics_screen.dart'; // Import analytics screen
+import 'login_screen.dart'; 
+import 'add_expense_screen.dart'; 
+import 'analytics_screen.dart'; 
 
 class HomeScreen extends StatefulWidget {
   @override
@@ -16,13 +16,13 @@ class _HomeScreenState extends State<HomeScreen> {
   int _bankBalance = 0;
   bool _isLoading = true;
   bool _hasSetBankBalance = false;
-  List<dynamic> _expenses = []; // List to store fetched expenses
+  List<dynamic> _expenses = []; 
 
   @override
   void initState() {
     super.initState();
     _fetchUserInfo();
-    _fetchRecentExpenses(); // Fetch expenses for the current day
+    _fetchRecentExpenses(); 
   }
 
   Future<void> _fetchUserInfo() async {
@@ -43,19 +43,16 @@ class _HomeScreenState extends State<HomeScreen> {
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
 
-        print("User info response: $data"); // Debugging print
-
         setState(() {
           _bankBalance = data["bankBalance"] ?? 0;
           _hasSetBankBalance = data["hasSetBankBalance"] ?? false;
           _isLoading = false;
         });
 
-        // Ensure userId is properly stored
+       
         if (data["userId"] != null) {
           await prefs.setString('userId', data["userId"].toString());
         } else {
-          print("Error: userId is null");
         }
 
         if (!_hasSetBankBalance) {
@@ -69,7 +66,7 @@ class _HomeScreenState extends State<HomeScreen> {
       }
     } catch (e) {
       setState(() => _isLoading = false);
-      print("Error fetching user info: $e"); // Debugging
+      
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text("Error fetching user info: $e")),
       );
@@ -81,14 +78,14 @@ class _HomeScreenState extends State<HomeScreen> {
     String? token = prefs.getString('token');
 
     if (token == null) {
-      print("Token is null. User is not logged in or token is missing."); // Debug print
+      
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text("No token found, please log in again")),
       );
       return;
     }
 
-    print("Token: $token"); // Debug print
+    
 
     try {
       final response = await http.get(
@@ -96,20 +93,19 @@ class _HomeScreenState extends State<HomeScreen> {
         headers: {"Authorization": "Bearer $token"},
       );
 
-      print("Response status code: ${response.statusCode}"); // Debug print
-      print("Response body: ${response.body}"); // Debug print
+      
 
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
         setState(() {
-          _expenses = data; // Update the expenses list
+          _expenses = data; 
         });
       } else if (response.statusCode == 401) {
-        // Handle token expiry
+      
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text("Session expired, please log in again")),
         );
-        _logout(); // Call the logout method
+        _logout(); 
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -124,42 +120,64 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Future<void> _deleteExpense(String expenseId) async {
-    SharedPreferences prefs = await SharedPreferences.getInstance();
-    String? token = prefs.getString('token');
+  SharedPreferences prefs = await SharedPreferences.getInstance();
+  String? token = prefs.getString('token');
 
-    if (token == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("No token found, please log in again")),
+  if (token == null) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text("No token found, please log in again")),
+    );
+    return;
+  }
+
+  try {
+    
+    final expense = _expenses.firstWhere((expense) => expense["_id"] == expenseId);
+    final int deletedAmount = expense["amount"];
+
+    
+    final response = await http.delete(
+      Uri.parse("http://192.168.1.47:8000/api/expenses/$expenseId"),
+      headers: {"Authorization": "Bearer $token"},
+    );
+
+    if (response.statusCode == 200) {
+      
+      setState(() {
+        _expenses.removeWhere((expense) => expense["_id"] == expenseId);
+        _bankBalance += deletedAmount; 
+      });
+
+      
+      final updateResponse = await http.put(
+        Uri.parse("http://192.168.1.47:8000/api/user/set-bank-balance"),
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": "Bearer $token",
+        },
+        body: jsonEncode({"bankBalance": _bankBalance}),
       );
-      return;
-    }
 
-    try {
-      final response = await http.delete(
-        Uri.parse("http://192.168.1.47:8000/api/expenses/$expenseId"),
-        headers: {"Authorization": "Bearer $token"},
-      );
-
-      if (response.statusCode == 200) {
-        setState(() {
-          _expenses.removeWhere((expense) => expense["_id"] == expenseId);
-        });
-
+      if (updateResponse.statusCode == 200) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text("Expense deleted successfully!")),
+          SnackBar(content: Text("Expense deleted and bank balance updated successfully!")),
         );
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text("Failed to delete expense: ${response.statusCode}"),
-          ),
+          SnackBar(content: Text("Expense deleted but failed to update bank balance: ${updateResponse.statusCode}")),
         );
       }
-    } catch (e) {
+    } else {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("Error deleting expense: $e")));
+        SnackBar(content: Text("Failed to delete expense: ${response.statusCode}")),
+      );
     }
+  } catch (e) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text("Error deleting expense: $e")),
+    );
   }
+}
 
   Future<void> _setBankBalance() async {
     final TextEditingController _balanceController = TextEditingController();
@@ -326,7 +344,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
   Future<void> _logout() async {
     SharedPreferences prefs = await SharedPreferences.getInstance();
-    await prefs.remove('token'); // Clear token
+    await prefs.remove('token'); 
     Navigator.pushReplacement(
       context,
       MaterialPageRoute(builder: (context) => LoginScreen()),
@@ -351,8 +369,8 @@ class _HomeScreenState extends State<HomeScreen> {
             },
           ),
           IconButton(
-            icon: Icon(Icons.account_balance_wallet), // Icon for updating bank balance
-            onPressed: _updateBankBalance, // Call the update bank balance method
+            icon: Icon(Icons.account_balance_wallet), 
+            onPressed: _updateBankBalance, 
           ),
           IconButton(icon: Icon(Icons.logout), onPressed: _logout),
         ],
