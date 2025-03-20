@@ -8,12 +8,12 @@ const authenticateUser = (req, res, next) => {
         return res.status(401).json({ error: "Access Denied: No Token Provided" });
     }
 
-    const token = authHeader.split(" ")[1]; // Extract the token from "Bearer <token>"
+    const token = authHeader.split(" ")[1]; 
 
     try {
         const verified = jwt.verify(token, process.env.JWT_SECRET);
-        req.user = verified; // Attach the decoded user information to req.user
-        console.log("Decoded user:", verified); // Debugging
+        req.user = verified; 
+        console.log("Decoded user:", verified);
         next();
     } catch (error) {
         res.status(400).json({ error: "Invalid Token" });
@@ -26,7 +26,7 @@ const errorHandler = (err, req, res, next) => {
 };
 
 const corsOptions = {
-    origin: "*", // Change to your Flutter app's domain for security
+    origin: "*", 
     methods: "GET,POST,PUT,DELETE",
     allowedHeaders: "Content-Type,Authorization",
 };

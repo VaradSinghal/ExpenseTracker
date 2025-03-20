@@ -36,7 +36,6 @@ const getUserInfo = async (req, res) => {
   }
 };
 
-// ✅ Correct export
 module.exports = {
   setBankBalance,
   getUserInfo

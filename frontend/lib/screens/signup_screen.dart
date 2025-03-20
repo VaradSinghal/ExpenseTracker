@@ -113,7 +113,7 @@ class _SignupScreenState extends State<SignupScreen> with SingleTickerProviderSt
     }
   }
 
-  // Custom SnackBar method
+ 
   void _showSnackBar(String message, {bool isError = false}) {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(

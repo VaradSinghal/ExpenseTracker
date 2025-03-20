@@ -63,7 +63,7 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> with SingleTickerProv
 
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
-        print("API Response: $data"); // Debug print to inspect the response
+        print("API Response: $data"); 
         setState(() {
           _last7DaysExpenses = List<Map<String, dynamic>>.from(data);
           _isLoading = false;
@@ -81,7 +81,6 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> with SingleTickerProv
     }
   }
 
-  // Custom SnackBar method
   void _showSnackBar(String message, {bool isError = false}) {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
@@ -109,13 +108,13 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> with SingleTickerProv
     );
   }
 
-  // Helper method to format the timestamp safely
+ 
   String _formatTimestamp(String? timestamp) {
     if (timestamp == null || timestamp.isEmpty) {
       return "Date unavailable";
     }
     try {
-      final dateTime = DateTime.parse(timestamp); // Parse ISO 8601 string
+      final dateTime = DateTime.parse(timestamp); 
       return "${dateTime.year}-${dateTime.month.toString().padLeft(2, '0')}-${dateTime.day.toString().padLeft(2, '0')}";
     } catch (e) {
       return "Invalid date format";

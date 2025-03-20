@@ -172,7 +172,7 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  // Custom SnackBar method
+ 
   void _showSnackBar(String message, {bool isError = false}) {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
@@ -200,7 +200,7 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  // Custom Dialog widget
+  
   Widget _buildDialog(String title, TextEditingController controller, bool isInitialSet) {
     return AlertDialog(
       backgroundColor: Color(0xFF2A2A3E),

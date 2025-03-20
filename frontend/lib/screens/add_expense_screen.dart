@@ -56,7 +56,7 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
     }
   }
 
-  // Custom SnackBar method
+
   void _showSnackBar(String message, {bool isError = false}) {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
@@ -87,7 +87,7 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Color(0xFF1A1A2E), // Matching dark theme
+      backgroundColor: Color(0xFF1A1A2E),
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
@@ -111,7 +111,7 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Title Field
+            
               Text(
                 "Expense Title",
                 style: TextStyle(
@@ -143,7 +143,7 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
                 },
               ),
               SizedBox(height: 20),
-              // Amount Field
+             
               Text(
                 "Amount",
                 style: TextStyle(
