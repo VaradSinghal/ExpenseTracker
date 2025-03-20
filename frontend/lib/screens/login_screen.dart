@@ -22,32 +22,43 @@ class _LoginScreenState extends State<LoginScreen> {
       _errorMessage = null;
     });
 
-    final response = await http.post(
-      Uri.parse("http://192.168.1.47:8000/api/auth/login"),
-      headers: {"Content-Type": "application/json"},
-      body: jsonEncode({
-        "email": _emailController.text.trim(),
-        "password": _passwordController.text.trim(),
-      }),
-    );
-
-    if (response.statusCode == 200) {
-      final data = jsonDecode(response.body);
-      String token = data['token'];
-
-      SharedPreferences prefs = await SharedPreferences.getInstance();
-      await prefs.setString('token', token);
-
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(builder: (_) => HomeScreen()),
+    try {
+      final response = await http.post(
+        Uri.parse("http://192.168.1.47:8000/api/auth/login"),
+        headers: {"Content-Type": "application/json"},
+        body: jsonEncode({
+          "email": _emailController.text.trim(),
+          "password": _passwordController.text.trim(),
+        }),
       );
-    } else {
-      final errorData = jsonDecode(response.body);
-      setState(() => _errorMessage = errorData['error'] ?? "Login failed");
-    }
 
-    setState(() => _isLoading = false);
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        String token = data['token'];
+        String userId = data['userId'].toString();
+
+        // Store token and userId
+        SharedPreferences prefs = await SharedPreferences.getInstance();
+        await prefs.setString('token', token);
+        await prefs.setString('userId', userId);
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Login Successful!')),
+        );
+
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (_) => HomeScreen()),
+        );
+      } else {
+        final errorData = jsonDecode(response.body);
+        setState(() => _errorMessage = errorData['error'] ?? "Login failed");
+      }
+    } catch (e) {
+      setState(() => _errorMessage = "An error occurred: $e");
+    } finally {
+      setState(() => _isLoading = false);
+    }
   }
 
   @override
@@ -117,5 +128,5 @@ class _LoginScreenState extends State<LoginScreen> {
         ),
       ),
     );
-  }  
+  }
 }

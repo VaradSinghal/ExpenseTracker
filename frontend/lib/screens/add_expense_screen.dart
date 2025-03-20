@@ -9,60 +9,64 @@ class AddExpenseScreen extends StatefulWidget {
 }
 
 class _AddExpenseScreenState extends State<AddExpenseScreen> {
-  final _formKey = GlobalKey<FormState>(); // Form key for validation
+  final _formKey = GlobalKey<FormState>();
   final TextEditingController _titleController = TextEditingController();
   final TextEditingController _amountController = TextEditingController();
-  bool _isLoading = false; // Loading state
+  bool _isLoading = false;
 
-  Future<void> _addExpense() async {
-    if (!_formKey.currentState!.validate()) {
-      return; // Exit if the form is invalid
-    }
-
-    setState(() => _isLoading = true); // Start loading
-
-    SharedPreferences prefs = await SharedPreferences.getInstance();
-    String? token = prefs.getString('token');
-
-    if (token == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("No token found, please log in again")),
-      );
-      setState(() => _isLoading = false);
-      return;
-    }
-
-    try {
-      final response = await http.post(
-        Uri.parse("http://192.168.1.47:8000/api/expenses/"),
-        headers: {
-          "Content-Type": "application/json",
-          "Authorization": "Bearer $token",
-        },
-        body: jsonEncode({
-          "title": _titleController.text,
-          "amount": int.parse(_amountController.text),
-        }),
-      );
-
-      if (response.statusCode == 201) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text("Expense added successfully!")),
-        );
-        Navigator.pop(context); // Return to the previous screen
-      } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text("Failed to add expense: ${response.statusCode}")),
-        );
-      }
-    } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("Error adding expense: $e")),
-      );
-    } finally {
-      setState(() => _isLoading = false); // Stop loading
-    }
+ Future<void> _addExpense() async {
+  if (!_formKey.currentState!.validate()) {
+    return; // Exit if the form is invalid
   }
+
+  setState(() => _isLoading = true);
+
+  SharedPreferences prefs = await SharedPreferences.getInstance();
+  String? token = prefs.getString('token');
+
+  if (token == null) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text("No token found, please log in again")),
+    );
+    setState(() => _isLoading = false);
+    return;
+  }
+
+  try {
+    final response = await http.post(
+      Uri.parse("http://192.168.1.47:8000/api/expenses/"),
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": "Bearer $token", // Send the token
+      },
+      body: jsonEncode({
+        "title": _titleController.text,
+        "amount": int.parse(_amountController.text),
+      }),
+    );
+
+    print("Response Status Code: ${response.statusCode}");
+    print("Response Body: ${response.body}");
+
+    if (response.statusCode == 201) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text("Expense added successfully!")),
+      );
+      Navigator.pop(context);
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text("Failed to add expense: ${response.statusCode}")),
+      );
+    }
+  } catch (e) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text("Error adding expense: $e")),
+    );
+  } finally {
+    setState(() => _isLoading = false);
+  }
+}
+
 
   @override
   Widget build(BuildContext context) {
@@ -74,7 +78,7 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
       body: Padding(
         padding: const EdgeInsets.all(16.0),
         child: Form(
-          key: _formKey, // Form key for validation
+          key: _formKey,
           child: Column(
             children: [
               TextFormField(
@@ -104,7 +108,7 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
               ),
               SizedBox(height: 20),
               _isLoading
-                  ? CircularProgressIndicator() // Show loading indicator
+                  ? CircularProgressIndicator()
                   : ElevatedButton(
                       onPressed: _addExpense,
                       child: Text("Save Expense"),

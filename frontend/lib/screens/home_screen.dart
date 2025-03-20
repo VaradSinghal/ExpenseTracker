@@ -26,52 +26,71 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Future<void> _fetchUserInfo() async {
-    SharedPreferences prefs = await SharedPreferences.getInstance();
-    String? token = prefs.getString('token');
+  SharedPreferences prefs = await SharedPreferences.getInstance();
+  String? token = prefs.getString('token');
 
-    if (token == null) {
-      setState(() => _isLoading = false);
-      return;
-    }
+  if (token == null) {
+    setState(() => _isLoading = false);
+    return;
+  }
 
-    try {
-      final response = await http.get(
-        Uri.parse("http://192.168.1.47:8000/api/user/user-info"),
-        headers: {"Authorization": "Bearer $token"},
-      );
+  try {
+    final response = await http.get(
+      Uri.parse("http://192.168.1.47:8000/api/user/user-info"),
+      headers: {"Authorization": "Bearer $token"},
+    );
 
-      if (response.statusCode == 200) {
-        final data = jsonDecode(response.body);
-        setState(() {
-          _bankBalance = data["bankBalance"] ?? 0;
-          _hasSetBankBalance = data["hasSetBankBalance"] ?? false;
-          _isLoading = false;
-        });
+    if (response.statusCode == 200) {
+      final data = jsonDecode(response.body);
 
-        if (!_hasSetBankBalance) {
-          Future.delayed(Duration(milliseconds: 500), () => _setBankBalance());
-        }
+      print("User info response: $data"); // Debugging print
+
+      setState(() {
+        _bankBalance = data["bankBalance"] ?? 0;
+        _hasSetBankBalance = data["hasSetBankBalance"] ?? false;
+        _isLoading = false;
+      });
+
+      // Ensure userId is properly stored
+      if (data["userId"] != null) {
+        await prefs.setString('userId', data["userId"].toString());
       } else {
-        setState(() => _isLoading = false);
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text("Failed to fetch user info: ${response.statusCode}")),
-        );
+        print("Error: userId is null");
       }
-    } catch (e) {
+
+      if (!_hasSetBankBalance) {
+        Future.delayed(Duration(milliseconds: 500), () => _setBankBalance());
+      }
+    } else {
       setState(() => _isLoading = false);
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("Error fetching user info: $e")),
+        SnackBar(content: Text("Failed to fetch user info: ${response.statusCode}")),
       );
     }
+  } catch (e) {
+    setState(() => _isLoading = false);
+    print("Error fetching user info: $e"); // Debugging
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text("Error fetching user info: $e")),
+    );
   }
+}
 
   Future<void> _fetchRecentExpenses() async {
     SharedPreferences prefs = await SharedPreferences.getInstance();
     String? token = prefs.getString('token');
 
     if (token == null) {
+      print(
+        "Token is null. User is not logged in or token is missing.",
+      ); // Debug print
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text("No token found, please log in again")),
+      );
       return;
     }
+
+    print("Token: $token"); // Debug print
 
     try {
       final response = await http.get(
@@ -79,20 +98,31 @@ class _HomeScreenState extends State<HomeScreen> {
         headers: {"Authorization": "Bearer $token"},
       );
 
+      print("Response status code: ${response.statusCode}"); // Debug print
+      print("Response body: ${response.body}"); // Debug print
+
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
         setState(() {
           _expenses = data; // Update the expenses list
         });
+      } else if (response.statusCode == 401) {
+        // Handle token expiry
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text("Session expired, please log in again")),
+        );
+        _logout(); // Call the logout method
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text("Failed to fetch expenses: ${response.statusCode}")),
+          SnackBar(
+            content: Text("Failed to fetch expenses: ${response.statusCode}"),
+          ),
         );
       }
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("Error fetching expenses: $e")),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text("Error fetching expenses: $e")));
     }
   }
 
@@ -123,13 +153,15 @@ class _HomeScreenState extends State<HomeScreen> {
         );
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text("Failed to delete expense: ${response.statusCode}")),
+          SnackBar(
+            content: Text("Failed to delete expense: ${response.statusCode}"),
+          ),
         );
       }
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("Error deleting expense: $e")),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text("Error deleting expense: $e")));
     }
   }
 
@@ -165,7 +197,9 @@ class _HomeScreenState extends State<HomeScreen> {
                 int? balance = int.tryParse(_balanceController.text);
                 if (balance == null || balance < 0) {
                   ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(content: Text("Enter a valid non-negative number")),
+                    SnackBar(
+                      content: Text("Enter a valid non-negative number"),
+                    ),
                   );
                   return;
                 }
@@ -175,7 +209,9 @@ class _HomeScreenState extends State<HomeScreen> {
 
                 if (token == null) {
                   ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(content: Text("No token found, please log in again")),
+                    SnackBar(
+                      content: Text("No token found, please log in again"),
+                    ),
                   );
                   Navigator.pop(context);
                   return;
@@ -183,7 +219,9 @@ class _HomeScreenState extends State<HomeScreen> {
 
                 try {
                   final response = await http.put(
-                    Uri.parse("http://192.168.1.47:8000/api/user/set-bank-balance"),
+                    Uri.parse(
+                      "http://192.168.1.47:8000/api/user/set-bank-balance",
+                    ),
                     headers: {
                       "Content-Type": "application/json",
                       "Authorization": "Bearer $token",
@@ -229,7 +267,7 @@ class _HomeScreenState extends State<HomeScreen> {
     await prefs.remove('token'); // Clear token
     Navigator.pushReplacement(
       context,
-      MaterialPageRoute(builder: (context) => LoginScreen()), // Redirect to login
+      MaterialPageRoute(builder: (context) => LoginScreen()),
     );
   }
 
@@ -250,46 +288,55 @@ class _HomeScreenState extends State<HomeScreen> {
               );
             },
           ),
-          IconButton(
-            icon: Icon(Icons.logout),
-            onPressed: _logout,
-          ),
+          IconButton(icon: Icon(Icons.logout), onPressed: _logout),
         ],
       ),
-      body: _isLoading
-          ? Center(child: CircularProgressIndicator())
-          : Column(
-              children: [
-                Padding(
-                  padding: const EdgeInsets.all(16.0),
-                  child: Text("Bank Balance: ₹$_bankBalance",
-                      style: TextStyle(fontSize: 24, color: Colors.white)),
-                ),
-                Expanded(
-                  child: ListView.builder(
-                    itemCount: _expenses.length,
-                    itemBuilder: (context, index) {
-                      final expense = _expenses[index];
-                      return ListTile(
-                        title: Text(expense["title"], style: TextStyle(color: Colors.white)),
-                        subtitle: Text("₹${expense["amount"]}", style: TextStyle(color: Colors.white54)),
-                        trailing: IconButton(
-                          icon: Icon(Icons.delete, color: Colors.red),
-                          onPressed: () => _deleteExpense(expense["_id"]),
-                        ),
-                      );
-                    },
+      body:
+          _isLoading
+              ? Center(child: CircularProgressIndicator())
+              : Column(
+                children: [
+                  Padding(
+                    padding: const EdgeInsets.all(16.0),
+                    child: Text(
+                      "Bank Balance: ₹$_bankBalance",
+                      style: TextStyle(fontSize: 24, color: Colors.white),
+                    ),
                   ),
-                ),
-              ],
-            ),
-      // Add a FloatingActionButton to navigate to the AddExpenseScreen
+                  Expanded(
+                    child: ListView.builder(
+                      itemCount: _expenses.length,
+                      itemBuilder: (context, index) {
+                        final expense = _expenses[index];
+                        return ListTile(
+                          title: Text(
+                            expense["title"],
+                            style: TextStyle(color: Colors.white),
+                          ),
+                          subtitle: Text(
+                            "₹${expense["amount"]}",
+                            style: TextStyle(color: Colors.white54),
+                          ),
+                          trailing: IconButton(
+                            icon: Icon(Icons.delete, color: Colors.red),
+                            onPressed: () => _deleteExpense(expense["_id"]),
+                          ),
+                        );
+                      },
+                    ),
+                  ),
+                ],
+              ),
+
       floatingActionButton: FloatingActionButton(
         onPressed: () {
           Navigator.push(
             context,
             MaterialPageRoute(builder: (context) => AddExpenseScreen()),
-          );
+          ).then((_) {
+            _fetchRecentExpenses();
+            _fetchUserInfo();
+          });
         },
         child: Icon(Icons.add),
         backgroundColor: Colors.greenAccent,
