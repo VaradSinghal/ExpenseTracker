@@ -87,42 +87,26 @@ const getRecentExpenses = async (req, res) => {
 
 const getLast7DaysExpenses = async (req, res) => {
     try {
-        const userId = req.user.userId;
-
-        // Calculate the date 7 days ago from today
-        const sevenDaysAgo = new Date();
-        sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
-
-        // Fetch and aggregate expenses for the last 7 days
-        const expenses = await Expense.aggregate([
-            {
-                $match: {
-                    userId: userId, // Filter by the logged-in user
-                    timestamp: { $gte: sevenDaysAgo }, // Filter expenses from the last 7 days
-                },
-            },
-            {
-                $group: {
-                    _id: { $dateToString: { format: "%Y-%m-%d", date: "$timestamp" } }, // Group by date
-                    totalAmount: { $sum: "$amount" }, // Sum the amounts for each day
-                },
-            },
-            {
-                $sort: { _id: 1 }, // Sort by date in ascending order
-            },
-        ]);
-
-        // Format the response to match the expected structure
-        const formattedExpenses = expenses.map((expense) => ({
-            date: expense._id,
-            totalAmount: expense.totalAmount,
-        }));
-
-        res.status(200).json(formattedExpenses);
+      const userId = req.user.userId;
+  
+      const sevenDaysAgo = new Date();
+      sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 6);
+      sevenDaysAgo.setHours(0, 0, 0, 0);
+  
+      const expenses = await Expense.find({
+        userId,
+        timestamp: { $gte: sevenDaysAgo },
+      }).sort({ timestamp: -1 });
+  
+      if (!expenses.length) {
+        return res.status(200).json([]);
+      }
+  
+      res.status(200).json(expenses);
     } catch (error) {
-        res.status(500).json({ error: error.message });
+      res.status(500).json({ error: error.message });
     }
-};
+  };
 
 module.exports = {
     addExpense,
