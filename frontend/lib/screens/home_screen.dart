@@ -36,7 +36,9 @@ class _HomeScreenState extends State<HomeScreen> {
 
     try {
       final response = await http.get(
-        Uri.parse("http://192.168.1.47:8000/api/user/user-info"),
+        Uri.parse(
+          "https://expense-tracker-server-azure.vercel.app/api/user/user-info",
+        ),
         headers: {"Authorization": "Bearer $token"},
       );
 
@@ -58,7 +60,10 @@ class _HomeScreenState extends State<HomeScreen> {
         }
       } else {
         setState(() => _isLoading = false);
-        _showSnackBar("Failed to fetch user info: ${response.statusCode}", isError: true);
+        _showSnackBar(
+          "Failed to fetch user info: ${response.statusCode}",
+          isError: true,
+        );
       }
     } catch (e) {
       setState(() => _isLoading = false);
@@ -77,7 +82,9 @@ class _HomeScreenState extends State<HomeScreen> {
 
     try {
       final response = await http.get(
-        Uri.parse("http://192.168.1.47:8000/api/expenses/recent"),
+        Uri.parse(
+          "https://expense-tracker-server-azure.vercel.app/api/expenses/recent",
+        ),
         headers: {"Authorization": "Bearer $token"},
       );
 
@@ -90,7 +97,10 @@ class _HomeScreenState extends State<HomeScreen> {
         _showSnackBar("Session expired, please log in again", isError: true);
         _logout();
       } else {
-        _showSnackBar("Failed to fetch expenses: ${response.statusCode}", isError: true);
+        _showSnackBar(
+          "Failed to fetch expenses: ${response.statusCode}",
+          isError: true,
+        );
       }
     } catch (e) {
       _showSnackBar("Error fetching expenses: $e", isError: true);
@@ -107,11 +117,15 @@ class _HomeScreenState extends State<HomeScreen> {
     }
 
     try {
-      final expense = _expenses.firstWhere((expense) => expense["_id"] == expenseId);
+      final expense = _expenses.firstWhere(
+        (expense) => expense["_id"] == expenseId,
+      );
       final int deletedAmount = expense["amount"];
 
       final response = await http.delete(
-        Uri.parse("http://192.168.1.47:8000/api/expenses/$expenseId"),
+        Uri.parse(
+          "https://expense-tracker-server-azure.vercel.app/api/expenses/$expenseId",
+        ),
         headers: {"Authorization": "Bearer $token"},
       );
 
@@ -122,7 +136,9 @@ class _HomeScreenState extends State<HomeScreen> {
         });
 
         final updateResponse = await http.put(
-          Uri.parse("http://192.168.1.47:8000/api/user/set-bank-balance"),
+          Uri.parse(
+            "https://expense-tracker-server-azure.vercel.app/api/user/set-bank-balance",
+          ),
           headers: {
             "Content-Type": "application/json",
             "Authorization": "Bearer $token",
@@ -133,10 +149,16 @@ class _HomeScreenState extends State<HomeScreen> {
         if (updateResponse.statusCode == 200) {
           _showSnackBar("Expense deleted and balance updated!");
         } else {
-          _showSnackBar("Expense deleted but failed to update balance: ${updateResponse.statusCode}", isError: true);
+          _showSnackBar(
+            "Expense deleted but failed to update balance: ${updateResponse.statusCode}",
+            isError: true,
+          );
         }
       } else {
-        _showSnackBar("Failed to delete expense: ${response.statusCode}", isError: true);
+        _showSnackBar(
+          "Failed to delete expense: ${response.statusCode}",
+          isError: true,
+        );
       }
     } catch (e) {
       _showSnackBar("Error deleting expense: $e", isError: true);
@@ -149,7 +171,9 @@ class _HomeScreenState extends State<HomeScreen> {
     showDialog(
       context: context,
       barrierDismissible: false,
-      builder: (context) => _buildDialog("Set Bank Balance", _balanceController, true),
+      builder:
+          (context) =>
+              _buildDialog("Set Bank Balance", _balanceController, true),
     );
   }
 
@@ -159,7 +183,9 @@ class _HomeScreenState extends State<HomeScreen> {
     showDialog(
       context: context,
       barrierDismissible: false,
-      builder: (context) => _buildDialog("Update Bank Balance", _balanceController, false),
+      builder:
+          (context) =>
+              _buildDialog("Update Bank Balance", _balanceController, false),
     );
   }
 
@@ -172,7 +198,6 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
- 
   void _showSnackBar(String message, {bool isError = false}) {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
@@ -200,8 +225,11 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  
-  Widget _buildDialog(String title, TextEditingController controller, bool isInitialSet) {
+  Widget _buildDialog(
+    String title,
+    TextEditingController controller,
+    bool isInitialSet,
+  ) {
     return AlertDialog(
       backgroundColor: Color(0xFF2A2A3E),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
@@ -255,14 +283,19 @@ class _HomeScreenState extends State<HomeScreen> {
             String? token = prefs.getString('token');
 
             if (token == null) {
-              _showSnackBar("No token found, please log in again", isError: true);
+              _showSnackBar(
+                "No token found, please log in again",
+                isError: true,
+              );
               Navigator.pop(context);
               return;
             }
 
             try {
               final response = await http.put(
-                Uri.parse("http://192.168.1.47:8000/api/user/set-bank-balance"),
+                Uri.parse(
+                  "https://expense-tracker-server-azure.vercel.app/api/user/set-bank-balance",
+                ),
                 headers: {
                   "Content-Type": "application/json",
                   "Authorization": "Bearer $token",
@@ -276,9 +309,16 @@ class _HomeScreenState extends State<HomeScreen> {
                   if (isInitialSet) _hasSetBankBalance = true;
                 });
                 Navigator.pop(context);
-                _showSnackBar(isInitialSet ? "Bank balance set successfully!" : "Bank balance updated successfully!");
+                _showSnackBar(
+                  isInitialSet
+                      ? "Bank balance set successfully!"
+                      : "Bank balance updated successfully!",
+                );
               } else {
-                _showSnackBar("Failed to update balance: ${response.statusCode}", isError: true);
+                _showSnackBar(
+                  "Failed to update balance: ${response.statusCode}",
+                  isError: true,
+                );
               }
             } catch (e) {
               _showSnackBar("Error updating balance: $e", isError: true);
@@ -286,7 +326,9 @@ class _HomeScreenState extends State<HomeScreen> {
           },
           style: ElevatedButton.styleFrom(
             backgroundColor: Colors.greenAccent,
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(10),
+            ),
           ),
           child: Text(
             isInitialSet ? "Set" : "Update",
@@ -323,7 +365,10 @@ class _HomeScreenState extends State<HomeScreen> {
             },
           ),
           IconButton(
-            icon: Icon(Icons.account_balance_wallet_outlined, color: Colors.white70),
+            icon: Icon(
+              Icons.account_balance_wallet_outlined,
+              color: Colors.white70,
+            ),
             onPressed: _updateBankBalance,
           ),
           IconButton(
@@ -332,127 +377,153 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
         ],
       ),
-      body: _isLoading
-          ? Center(child: CircularProgressIndicator(color: Colors.greenAccent))
-          : Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16.0),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  SizedBox(height: 20),
-                  Container(
-                    width: double.infinity,
-                    padding: EdgeInsets.all(20),
-                    decoration: BoxDecoration(
-                      gradient: LinearGradient(
-                        colors: [Colors.greenAccent, Colors.tealAccent],
-                        begin: Alignment.topLeft,
-                        end: Alignment.bottomRight,
+      body:
+          _isLoading
+              ? Center(
+                child: CircularProgressIndicator(color: Colors.greenAccent),
+              )
+              : Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    SizedBox(height: 20),
+                    Container(
+                      width: double.infinity,
+                      padding: EdgeInsets.all(20),
+                      decoration: BoxDecoration(
+                        gradient: LinearGradient(
+                          colors: [Colors.greenAccent, Colors.tealAccent],
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
+                        ),
+                        borderRadius: BorderRadius.circular(20),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black26,
+                            blurRadius: 10,
+                            offset: Offset(0, 5),
+                          ),
+                        ],
                       ),
-                      borderRadius: BorderRadius.circular(20),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black26,
-                          blurRadius: 10,
-                          offset: Offset(0, 5),
-                        ),
-                      ],
-                    ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          "Bank Balance",
-                          style: TextStyle(
-                            fontSize: 18,
-                            color: Colors.white70,
-                            fontWeight: FontWeight.w500,
-                          ),
-                        ),
-                        SizedBox(height: 10),
-                        Text(
-                          "₹$_bankBalance",
-                          style: TextStyle(
-                            fontSize: 36,
-                            color: Colors.white,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  SizedBox(height: 30),
-                  Text(
-                    "Recent Expenses",
-                    style: TextStyle(
-                      fontSize: 22,
-                      color: Colors.white,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  SizedBox(height: 10),
-                  Expanded(
-                    child: _expenses.isEmpty
-                        ? Center(
-                            child: Text(
-                              "No expenses yet!",
-                              style: TextStyle(fontSize: 18, color: Colors.white54),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            "Bank Balance",
+                            style: TextStyle(
+                              fontSize: 18,
+                              color: Colors.white70,
+                              fontWeight: FontWeight.w500,
                             ),
-                          )
-                        : ListView.builder(
-                            itemCount: _expenses.length,
-                            itemBuilder: (context, index) {
-                              final expense = _expenses[index];
-                              return Dismissible(
-                                key: Key(expense["_id"]),
-                                direction: DismissDirection.endToStart,
-                                onDismissed: (direction) {
-                                  _deleteExpense(expense["_id"]);
-                                },
-                                background: Container(
-                                  alignment: Alignment.centerRight,
-                                  padding: EdgeInsets.only(right: 20),
-                                  color: Colors.redAccent,
-                                  child: Icon(Icons.delete, color: Colors.white),
-                                ),
-                                child: Card(
-                                  color: Color(0xFF2A2A3E),
-                                  elevation: 2,
-                                  margin: EdgeInsets.symmetric(vertical: 8),
-                                  shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(15),
+                          ),
+                          SizedBox(height: 10),
+                          Text(
+                            "₹$_bankBalance",
+                            style: TextStyle(
+                              fontSize: 36,
+                              color: Colors.white,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    SizedBox(height: 30),
+                    Text(
+                      "Recent Expenses",
+                      style: TextStyle(
+                        fontSize: 22,
+                        color: Colors.white,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    SizedBox(height: 10),
+                    Expanded(
+                      child:
+                          _expenses.isEmpty
+                              ? Center(
+                                child: Text(
+                                  "No expenses yet!",
+                                  style: TextStyle(
+                                    fontSize: 18,
+                                    color: Colors.white54,
                                   ),
-                                  child: ListTile(
-                                    contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-                                    leading: CircleAvatar(
-                                      backgroundColor: Colors.greenAccent.withOpacity(0.2),
-                                      child: Icon(Icons.money_off, color: Colors.greenAccent),
-                                    ),
-                                    title: Text(
-                                      expense["title"],
-                                      style: TextStyle(
-                                        fontSize: 18,
+                                ),
+                              )
+                              : ListView.builder(
+                                itemCount: _expenses.length,
+                                itemBuilder: (context, index) {
+                                  final expense = _expenses[index];
+                                  return Dismissible(
+                                    key: Key(expense["_id"]),
+                                    direction: DismissDirection.endToStart,
+                                    onDismissed: (direction) {
+                                      _deleteExpense(expense["_id"]);
+                                    },
+                                    background: Container(
+                                      alignment: Alignment.centerRight,
+                                      padding: EdgeInsets.only(right: 20),
+                                      color: Colors.redAccent,
+                                      child: Icon(
+                                        Icons.delete,
                                         color: Colors.white,
-                                        fontWeight: FontWeight.w600,
                                       ),
                                     ),
-                                    subtitle: Text(
-                                      "₹${expense["amount"]}",
-                                      style: TextStyle(fontSize: 16, color: Colors.white54),
+                                    child: Card(
+                                      color: Color(0xFF2A2A3E),
+                                      elevation: 2,
+                                      margin: EdgeInsets.symmetric(vertical: 8),
+                                      shape: RoundedRectangleBorder(
+                                        borderRadius: BorderRadius.circular(15),
+                                      ),
+                                      child: ListTile(
+                                        contentPadding: EdgeInsets.symmetric(
+                                          horizontal: 16,
+                                          vertical: 10,
+                                        ),
+                                        leading: CircleAvatar(
+                                          backgroundColor: Colors.greenAccent
+                                              .withOpacity(0.2),
+                                          child: Icon(
+                                            Icons.money_off,
+                                            color: Colors.greenAccent,
+                                          ),
+                                        ),
+                                        title: Text(
+                                          expense["title"],
+                                          style: TextStyle(
+                                            fontSize: 18,
+                                            color: Colors.white,
+                                            fontWeight: FontWeight.w600,
+                                          ),
+                                        ),
+                                        subtitle: Text(
+                                          "₹${expense["amount"]}",
+                                          style: TextStyle(
+                                            fontSize: 16,
+                                            color: Colors.white54,
+                                          ),
+                                        ),
+                                        trailing: IconButton(
+                                          icon: Icon(
+                                            Icons.delete_outline,
+                                            color: Colors.redAccent,
+                                          ),
+                                          onPressed:
+                                              () => _deleteExpense(
+                                                expense["_id"],
+                                              ),
+                                        ),
+                                      ),
                                     ),
-                                    trailing: IconButton(
-                                      icon: Icon(Icons.delete_outline, color: Colors.redAccent),
-                                      onPressed: () => _deleteExpense(expense["_id"]),
-                                    ),
-                                  ),
-                                ),
-                              );
-                            },
-                          ),
-                  ),
-                ],
+                                  );
+                                },
+                              ),
+                    ),
+                  ],
+                ),
               ),
-            ),
       floatingActionButton: FloatingActionButton(
         onPressed: () {
           Navigator.push(

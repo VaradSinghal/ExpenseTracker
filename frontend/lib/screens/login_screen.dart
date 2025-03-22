@@ -25,7 +25,9 @@ class _LoginScreenState extends State<LoginScreen> {
 
     try {
       final response = await http.post(
-        Uri.parse("http://192.168.1.47:8000/api/auth/login"),
+        Uri.parse(
+          "https://expense-tracker-server-azure.vercel.app/api/auth/login",
+        ),
         headers: {"Content-Type": "application/json"},
         body: jsonEncode({
           "email": _emailController.text.trim(),
@@ -98,15 +100,14 @@ class _LoginScreenState extends State<LoginScreen> {
           gradient: LinearGradient(
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
-            colors: [
-              Color(0xFF1A1A2E),
-              Color(0xFF16213E),
-            ],
+            colors: [Color(0xFF1A1A2E), Color(0xFF16213E)],
           ),
         ),
         child: SafeArea(
           child: SizedBox(
-            height: MediaQuery.of(context).size.height - MediaQuery.of(context).padding.top,
+            height:
+                MediaQuery.of(context).size.height -
+                MediaQuery.of(context).padding.top,
             width: MediaQuery.of(context).size.width,
             child: SingleChildScrollView(
               padding: EdgeInsets.symmetric(horizontal: 30.0, vertical: 40.0),
@@ -148,37 +149,36 @@ class _LoginScreenState extends State<LoginScreen> {
                     SizedBox(height: 15),
                     Text(
                       _errorMessage!,
-                      style: TextStyle(
-                        color: Colors.redAccent,
-                        fontSize: 14,
-                      ),
+                      style: TextStyle(color: Colors.redAccent, fontSize: 14),
                     ),
                   ],
                   SizedBox(height: 30),
                   _isLoading
                       ? CircularProgressIndicator(
-                          valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF00D4B4)),
-                        )
+                        valueColor: AlwaysStoppedAnimation<Color>(
+                          Color(0xFF00D4B4),
+                        ),
+                      )
                       : ElevatedButton(
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: Color(0xFF00D4B4),
-                            padding: EdgeInsets.symmetric(vertical: 16),
-                            minimumSize: Size(double.infinity, 50),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(25),
-                            ),
-                            elevation: 5,
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Color(0xFF00D4B4),
+                          padding: EdgeInsets.symmetric(vertical: 16),
+                          minimumSize: Size(double.infinity, 50),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(25),
                           ),
-                          onPressed: _login,
-                          child: Text(
-                            "Log In",
-                            style: TextStyle(
-                              fontSize: 18,
-                              fontWeight: FontWeight.bold,
-                              color: Colors.white,
-                            ),
+                          elevation: 5,
+                        ),
+                        onPressed: _login,
+                        child: Text(
+                          "Log In",
+                          style: TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.white,
                           ),
                         ),
+                      ),
                   SizedBox(height: 20),
                   Row(
                     mainAxisAlignment: MainAxisAlignment.center,
@@ -237,19 +237,20 @@ class _LoginScreenState extends State<LoginScreen> {
           borderRadius: BorderRadius.circular(15),
           borderSide: BorderSide(color: Color(0xFF00D4B4), width: 2),
         ),
-        suffixIcon: isPassword
-            ? IconButton(
-                icon: Icon(
-                  _showPassword ? Icons.visibility : Icons.visibility_off,
-                  color: Color(0xFF00D4B4),
-                ),
-                onPressed: () {
-                  setState(() {
-                    _showPassword = !_showPassword;
-                  });
-                },
-              )
-            : null,
+        suffixIcon:
+            isPassword
+                ? IconButton(
+                  icon: Icon(
+                    _showPassword ? Icons.visibility : Icons.visibility_off,
+                    color: Color(0xFF00D4B4),
+                  ),
+                  onPressed: () {
+                    setState(() {
+                      _showPassword = !_showPassword;
+                    });
+                  },
+                )
+                : null,
       ),
     );
   }

@@ -8,7 +8,8 @@ class AnalyticsScreen extends StatefulWidget {
   _AnalyticsScreenState createState() => _AnalyticsScreenState();
 }
 
-class _AnalyticsScreenState extends State<AnalyticsScreen> with SingleTickerProviderStateMixin {
+class _AnalyticsScreenState extends State<AnalyticsScreen>
+    with SingleTickerProviderStateMixin {
   List<Map<String, dynamic>> _last7DaysExpenses = [];
   bool _isLoading = true;
 
@@ -57,13 +58,15 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> with SingleTickerProv
 
     try {
       final response = await http.get(
-        Uri.parse("http://192.168.1.47:8000/api/expenses/last7days"),
+        Uri.parse(
+          "https://expense-tracker-server-azure.vercel.app/api/expenses/last7days",
+        ),
         headers: {"Authorization": "Bearer $token"},
       );
 
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
-        print("API Response: $data"); 
+
         setState(() {
           _last7DaysExpenses = List<Map<String, dynamic>>.from(data);
           _isLoading = false;
@@ -72,7 +75,10 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> with SingleTickerProv
         _showSnackBar("Session expired, please log in again", isError: true);
         setState(() => _isLoading = false);
       } else {
-        _showSnackBar("Failed to fetch expenses: ${response.statusCode}", isError: true);
+        _showSnackBar(
+          "Failed to fetch expenses: ${response.statusCode}",
+          isError: true,
+        );
         setState(() => _isLoading = false);
       }
     } catch (e) {
@@ -108,13 +114,12 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> with SingleTickerProv
     );
   }
 
- 
   String _formatTimestamp(String? timestamp) {
     if (timestamp == null || timestamp.isEmpty) {
       return "Date unavailable";
     }
     try {
-      final dateTime = DateTime.parse(timestamp); 
+      final dateTime = DateTime.parse(timestamp);
       return "${dateTime.year}-${dateTime.month.toString().padLeft(2, '0')}-${dateTime.day.toString().padLeft(2, '0')}";
     } catch (e) {
       return "Invalid date format";
@@ -141,129 +146,150 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> with SingleTickerProv
           ),
         ),
       ),
-      body: _isLoading
-          ? Center(
-              child: CircularProgressIndicator(color: Colors.greenAccent),
-            )
-          : FadeTransition(
-              opacity: _fadeAnimation,
-              child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 20.0),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Container(
-                      width: double.infinity,
-                      padding: EdgeInsets.all(20),
-                      decoration: BoxDecoration(
-                        gradient: LinearGradient(
-                          colors: [Colors.greenAccent.withOpacity(0.2), Colors.tealAccent.withOpacity(0.2)],
-                          begin: Alignment.topLeft,
-                          end: Alignment.bottomRight,
-                        ),
-                        borderRadius: BorderRadius.circular(20),
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.black26,
-                            blurRadius: 10,
-                            offset: Offset(0, 5),
+      body:
+          _isLoading
+              ? Center(
+                child: CircularProgressIndicator(color: Colors.greenAccent),
+              )
+              : FadeTransition(
+                opacity: _fadeAnimation,
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 16.0,
+                    vertical: 20.0,
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Container(
+                        width: double.infinity,
+                        padding: EdgeInsets.all(20),
+                        decoration: BoxDecoration(
+                          gradient: LinearGradient(
+                            colors: [
+                              Colors.greenAccent.withOpacity(0.2),
+                              Colors.tealAccent.withOpacity(0.2),
+                            ],
+                            begin: Alignment.topLeft,
+                            end: Alignment.bottomRight,
                           ),
-                        ],
-                      ),
-                      child: Text(
-                        "Last 7 Days Expenses",
-                        style: TextStyle(
-                          fontSize: 22,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(20),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black26,
+                              blurRadius: 10,
+                              offset: Offset(0, 5),
+                            ),
+                          ],
+                        ),
+                        child: Text(
+                          "Last 7 Days Expenses",
+                          style: TextStyle(
+                            fontSize: 22,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.white,
+                          ),
                         ),
                       ),
-                    ),
-                    SizedBox(height: 20),
-                    Expanded(
-                      child: _last7DaysExpenses.isEmpty
-                          ? Center(
-                              child: Text(
-                                "No expenses in the last 7 days!",
-                                style: TextStyle(
-                                  fontSize: 18,
-                                  color: Colors.white54,
-                                ),
-                              ),
-                            )
-                          : ListView.builder(
-                              itemCount: _last7DaysExpenses.length,
-                              itemBuilder: (context, index) {
-                                final expense = _last7DaysExpenses[index];
-                                return SlideTransition(
-                                  position: Tween<Offset>(
-                                    begin: Offset(0.1 * index, 0),
-                                    end: Offset.zero,
-                                  ).animate(
-                                    CurvedAnimation(
-                                      parent: _animationController,
-                                      curve: Interval(
-                                        0.1 * index,
-                                        1.0,
-                                        curve: Curves.easeOut,
-                                      ),
+                      SizedBox(height: 20),
+                      Expanded(
+                        child:
+                            _last7DaysExpenses.isEmpty
+                                ? Center(
+                                  child: Text(
+                                    "No expenses in the last 7 days!",
+                                    style: TextStyle(
+                                      fontSize: 18,
+                                      color: Colors.white54,
                                     ),
                                   ),
-                                  child: Card(
-                                    color: Color(0xFF2A2A3E),
-                                    elevation: 2,
-                                    margin: EdgeInsets.symmetric(vertical: 8),
-                                    shape: RoundedRectangleBorder(
-                                      borderRadius: BorderRadius.circular(15),
-                                    ),
-                                    child: ListTile(
-                                      contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-                                      leading: CircleAvatar(
-                                        backgroundColor: Colors.greenAccent.withOpacity(0.2),
-                                        child: Icon(
-                                          Icons.bar_chart,
-                                          color: Colors.greenAccent,
-                                        ),
-                                      ),
-                                      title: Text(
-                                        expense["title"] ?? "Untitled",
-                                        style: TextStyle(
-                                          fontSize: 18,
-                                          color: Colors.white,
-                                          fontWeight: FontWeight.w600,
-                                        ),
-                                      ),
-                                      subtitle: Text(
-                                        "₹${expense["amount"]?.toString() ?? "0"} on ${_formatTimestamp(expense["timestamp"])}",
-                                        style: TextStyle(
-                                          fontSize: 14,
-                                          color: Colors.white54,
-                                        ),
-                                      ),
-                                      trailing: Container(
-                                        padding: EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                                        decoration: BoxDecoration(
-                                          color: Colors.redAccent.withOpacity(0.2),
-                                          borderRadius: BorderRadius.circular(10),
-                                        ),
-                                        child: Text(
-                                          "-₹${expense["amount"]?.toString() ?? "0"}",
-                                          style: TextStyle(
-                                            color: Colors.redAccent,
-                                            fontWeight: FontWeight.bold,
+                                )
+                                : ListView.builder(
+                                  itemCount: _last7DaysExpenses.length,
+                                  itemBuilder: (context, index) {
+                                    final expense = _last7DaysExpenses[index];
+                                    return SlideTransition(
+                                      position: Tween<Offset>(
+                                        begin: Offset(0.1 * index, 0),
+                                        end: Offset.zero,
+                                      ).animate(
+                                        CurvedAnimation(
+                                          parent: _animationController,
+                                          curve: Interval(
+                                            0.1 * index,
+                                            1.0,
+                                            curve: Curves.easeOut,
                                           ),
                                         ),
                                       ),
-                                    ),
-                                  ),
-                                );
-                              },
-                            ),
-                    ),
-                  ],
+                                      child: Card(
+                                        color: Color(0xFF2A2A3E),
+                                        elevation: 2,
+                                        margin: EdgeInsets.symmetric(
+                                          vertical: 8,
+                                        ),
+                                        shape: RoundedRectangleBorder(
+                                          borderRadius: BorderRadius.circular(
+                                            15,
+                                          ),
+                                        ),
+                                        child: ListTile(
+                                          contentPadding: EdgeInsets.symmetric(
+                                            horizontal: 16,
+                                            vertical: 10,
+                                          ),
+                                          leading: CircleAvatar(
+                                            backgroundColor: Colors.greenAccent
+                                                .withOpacity(0.2),
+                                            child: Icon(
+                                              Icons.bar_chart,
+                                              color: Colors.greenAccent,
+                                            ),
+                                          ),
+                                          title: Text(
+                                            expense["title"] ?? "Untitled",
+                                            style: TextStyle(
+                                              fontSize: 18,
+                                              color: Colors.white,
+                                              fontWeight: FontWeight.w600,
+                                            ),
+                                          ),
+                                          subtitle: Text(
+                                            "₹${expense["amount"]?.toString() ?? "0"} on ${_formatTimestamp(expense["timestamp"])}",
+                                            style: TextStyle(
+                                              fontSize: 14,
+                                              color: Colors.white54,
+                                            ),
+                                          ),
+                                          trailing: Container(
+                                            padding: EdgeInsets.symmetric(
+                                              horizontal: 12,
+                                              vertical: 6,
+                                            ),
+                                            decoration: BoxDecoration(
+                                              color: Colors.redAccent
+                                                  .withOpacity(0.2),
+                                              borderRadius:
+                                                  BorderRadius.circular(10),
+                                            ),
+                                            child: Text(
+                                              "-₹${expense["amount"]?.toString() ?? "0"}",
+                                              style: TextStyle(
+                                                color: Colors.redAccent,
+                                                fontWeight: FontWeight.bold,
+                                              ),
+                                            ),
+                                          ),
+                                        ),
+                                      ),
+                                    );
+                                  },
+                                ),
+                      ),
+                    ],
+                  ),
                 ),
               ),
-            ),
     );
   }
 }

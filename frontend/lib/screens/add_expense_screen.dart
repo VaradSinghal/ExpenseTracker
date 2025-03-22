@@ -32,7 +32,9 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
 
     try {
       final response = await http.post(
-        Uri.parse("http://192.168.1.47:8000/api/expenses/"),
+        Uri.parse(
+          "https://expense-tracker-server-azure.vercel.app/api/expenses/",
+        ),
         headers: {
           "Content-Type": "application/json",
           "Authorization": "Bearer $token",
@@ -47,7 +49,10 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
         _showSnackBar("Expense added successfully!");
         Navigator.pop(context);
       } else {
-        _showSnackBar("Failed to add expense: ${response.statusCode}", isError: true);
+        _showSnackBar(
+          "Failed to add expense: ${response.statusCode}",
+          isError: true,
+        );
       }
     } catch (e) {
       _showSnackBar("Error adding expense: $e", isError: true);
@@ -55,7 +60,6 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
       setState(() => _isLoading = false);
     }
   }
-
 
   void _showSnackBar(String message, {bool isError = false}) {
     ScaffoldMessenger.of(context).showSnackBar(
@@ -111,7 +115,6 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-            
               Text(
                 "Expense Title",
                 style: TextStyle(
@@ -133,7 +136,10 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
                     borderRadius: BorderRadius.circular(15),
                     borderSide: BorderSide.none,
                   ),
-                  prefixIcon: Icon(Icons.description, color: Colors.greenAccent),
+                  prefixIcon: Icon(
+                    Icons.description,
+                    color: Colors.greenAccent,
+                  ),
                 ),
                 validator: (value) {
                   if (value == null || value.isEmpty) {
@@ -143,7 +149,7 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
                 },
               ),
               SizedBox(height: 20),
-             
+
               Text(
                 "Amount",
                 style: TextStyle(
@@ -166,7 +172,10 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
                     borderRadius: BorderRadius.circular(15),
                     borderSide: BorderSide.none,
                   ),
-                  prefixIcon: Icon(Icons.currency_rupee, color: Colors.greenAccent),
+                  prefixIcon: Icon(
+                    Icons.currency_rupee,
+                    color: Colors.greenAccent,
+                  ),
                 ),
                 validator: (value) {
                   if (value == null || value.isEmpty) {
@@ -181,34 +190,38 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
               SizedBox(height: 40),
               // Save Button
               Center(
-                child: _isLoading
-                    ? CircularProgressIndicator(color: Colors.greenAccent)
-                    : ElevatedButton(
-                        onPressed: _addExpense,
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.greenAccent,
-                          padding: EdgeInsets.symmetric(horizontal: 40, vertical: 15),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(15),
-                          ),
-                          elevation: 5,
-                        ),
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Icon(Icons.save, color: Colors.white),
-                            SizedBox(width: 10),
-                            Text(
-                              "Save Expense",
-                              style: TextStyle(
-                                fontSize: 18,
-                                fontWeight: FontWeight.bold,
-                                color: Colors.white,
-                              ),
+                child:
+                    _isLoading
+                        ? CircularProgressIndicator(color: Colors.greenAccent)
+                        : ElevatedButton(
+                          onPressed: _addExpense,
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.greenAccent,
+                            padding: EdgeInsets.symmetric(
+                              horizontal: 40,
+                              vertical: 15,
                             ),
-                          ],
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(15),
+                            ),
+                            elevation: 5,
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(Icons.save, color: Colors.white),
+                              SizedBox(width: 10),
+                              Text(
+                                "Save Expense",
+                                style: TextStyle(
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.white,
+                                ),
+                              ),
+                            ],
+                          ),
                         ),
-                      ),
               ),
             ],
           ),

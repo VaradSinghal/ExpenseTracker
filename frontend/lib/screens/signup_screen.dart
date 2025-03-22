@@ -10,7 +10,8 @@ class SignupScreen extends StatefulWidget {
   _SignupScreenState createState() => _SignupScreenState();
 }
 
-class _SignupScreenState extends State<SignupScreen> with SingleTickerProviderStateMixin {
+class _SignupScreenState extends State<SignupScreen>
+    with SingleTickerProviderStateMixin {
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
   bool _isLoading = false;
@@ -68,16 +69,15 @@ class _SignupScreenState extends State<SignupScreen> with SingleTickerProviderSt
       return;
     }
 
-    final Uri url = Uri.parse("http://192.168.1.47:8000/api/auth/signup");
+    final Uri url = Uri.parse(
+      "https://expense-tracker-server-azure.vercel.app/api/auth/signup",
+    );
 
     try {
       final response = await http.post(
         url,
         headers: {"Content-Type": "application/json"},
-        body: jsonEncode({
-          "email": email,
-          "password": password,
-        }),
+        body: jsonEncode({"email": email, "password": password}),
       );
 
       final responseData = jsonDecode(response.body);
@@ -113,7 +113,6 @@ class _SignupScreenState extends State<SignupScreen> with SingleTickerProviderSt
     }
   }
 
- 
   void _showSnackBar(String message, {bool isError = false}) {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
@@ -150,10 +149,7 @@ class _SignupScreenState extends State<SignupScreen> with SingleTickerProviderSt
           gradient: LinearGradient(
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
-            colors: [
-              Color(0xFF1A1A2E),
-              Color(0xFF16213E),
-            ],
+            colors: [Color(0xFF1A1A2E), Color(0xFF16213E)],
           ),
         ),
         child: SafeArea(
@@ -222,28 +218,32 @@ class _SignupScreenState extends State<SignupScreen> with SingleTickerProviderSt
                               SizedBox(height: 30),
                               _isLoading
                                   ? CircularProgressIndicator(
-                                      valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF00D4B4)),
-                                    )
+                                    valueColor: AlwaysStoppedAnimation<Color>(
+                                      Color(0xFF00D4B4),
+                                    ),
+                                  )
                                   : ElevatedButton(
-                                      style: ElevatedButton.styleFrom(
-                                        backgroundColor: Color(0xFF00D4B4),
-                                        padding: EdgeInsets.symmetric(vertical: 16),
-                                        minimumSize: Size(double.infinity, 50),
-                                        shape: RoundedRectangleBorder(
-                                          borderRadius: BorderRadius.circular(25),
-                                        ),
-                                        elevation: 5,
+                                    style: ElevatedButton.styleFrom(
+                                      backgroundColor: Color(0xFF00D4B4),
+                                      padding: EdgeInsets.symmetric(
+                                        vertical: 16,
                                       ),
-                                      onPressed: _signup,
-                                      child: Text(
-                                        "Sign Up",
-                                        style: TextStyle(
-                                          fontSize: 18,
-                                          fontWeight: FontWeight.bold,
-                                          color: Colors.white,
-                                        ),
+                                      minimumSize: Size(double.infinity, 50),
+                                      shape: RoundedRectangleBorder(
+                                        borderRadius: BorderRadius.circular(25),
+                                      ),
+                                      elevation: 5,
+                                    ),
+                                    onPressed: _signup,
+                                    child: Text(
+                                      "Sign Up",
+                                      style: TextStyle(
+                                        fontSize: 18,
+                                        fontWeight: FontWeight.bold,
+                                        color: Colors.white,
                                       ),
                                     ),
+                                  ),
                             ],
                           ),
                           Row(
@@ -257,7 +257,9 @@ class _SignupScreenState extends State<SignupScreen> with SingleTickerProviderSt
                                 onTap: () {
                                   Navigator.pushReplacement(
                                     context,
-                                    MaterialPageRoute(builder: (_) => LoginScreen()),
+                                    MaterialPageRoute(
+                                      builder: (_) => LoginScreen(),
+                                    ),
                                   );
                                 },
                                 child: Text(
